@@ -13,6 +13,7 @@ import { SessionDetail } from "./components/SessionDetail";
 import { Progress } from "./components/Progress";
 import { Settings } from "./components/Settings";
 import { Chat } from "./components/Chat";
+import { KaiChat } from "./components/KaiChat";
 
 export const router = createBrowserRouter([
   // Auth routes
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
           { path: "progress", Component: Progress },
           { path: "settings", Component: Settings },
           { path: "chat", Component: Chat },
+          { path: "kai", Component: KaiChat },
         ],
       },
     ],

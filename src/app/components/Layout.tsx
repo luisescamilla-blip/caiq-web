@@ -25,6 +25,10 @@ const navItems = [
   { icon: MessageSquare, label: "Messages", path: "/chat" },
 ];
 
+const caiItems = [
+  { icon: Sparkles, label: "Chat", path: "/kai" },
+];
+
 export function Layout() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -105,6 +109,39 @@ export function Layout() {
               </button>
             );
           })}
+
+          {/* CAI section */}
+          <div className="pt-4">
+            <p className="px-3 mb-2 text-gray-400 uppercase tracking-wider" style={{ fontSize: "10px", fontWeight: 600 }}>
+              CAI
+            </p>
+            {caiItems.map((item) => {
+              const Icon = item.icon;
+              const active = isActive(item.path);
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => {
+                    navigate(item.path);
+                    setSidebarOpen(false);
+                  }}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all group ${
+                    active
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                  }`}
+                >
+                  <Icon
+                    className={`w-5 h-5 flex-shrink-0 ${active ? "text-indigo-600" : "text-gray-400 group-hover:text-gray-600"}`}
+                  />
+                  <span style={{ fontSize: "14px", fontWeight: active ? 600 : 500 }}>{item.label}</span>
+                  {active && (
+                    <ChevronRight className="w-4 h-4 ml-auto text-indigo-400" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
 
           <div className="pt-4">
             <p className="px-3 mb-2 text-gray-400 uppercase tracking-wider" style={{ fontSize: "10px", fontWeight: 600 }}>
