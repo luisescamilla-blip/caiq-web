@@ -25,8 +25,8 @@ export function SignIn() {
     try {
       await signIn(form.email, form.password);
       navigate("/");
-    } catch {
-      setError("Invalid email or password. Please try again.");
+    } catch (err: any) {
+      setError(err?.message ?? "Invalid email or password. Please try again.");
     } finally {
       setLoading(false);
     }
