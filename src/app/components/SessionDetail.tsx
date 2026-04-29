@@ -19,6 +19,9 @@ import {
   X,
   Check,
   ChevronDown,
+  Dumbbell,
+  Image,
+  MessageCircle,
 } from "lucide-react";
 
 const SESSION_STATUS_STYLES: Record<string, string> = {
@@ -55,7 +58,7 @@ export function SessionDetail() {
   const session = sessions.find((s) => s.id === id);
   const student = session ? students.find((st) => st.id === session.studentId) : null;
 
-  const [activeTab, setActiveTab] = useState<"overview" | "sessions" | "goals" | "notes">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "drills" | "goals" | "notes" | "media" | "chats">("overview");
 
   // Note modal state
   const [noteModalOpen, setNoteModalOpen] = useState(false);
@@ -131,9 +134,11 @@ export function SessionDetail() {
 
   const tabs = [
     { key: "overview", label: "Overview" },
-    { key: "sessions", label: `Sessions (${studentSessions.length})` },
+    { key: "drills", label: `Drills (${studentSessions.length})` },
     { key: "goals", label: `Goals (${student.goals.length})` },
     { key: "notes", label: `Notes (${student.notes.length})` },
+    { key: "media", label: "Photos & Videos" },
+    { key: "chats", label: "Chats" },
   ] as const;
 
   return (
@@ -189,8 +194,8 @@ export function SessionDetail() {
       {/* Quick stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Total Sessions", value: student.totalSessions, icon: CalendarDays, color: "text-indigo-600", bg: "bg-indigo-50" },
-          { label: "Upcoming", value: upcomingSessions.length, icon: Clock, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Total Drills", value: student.totalSessions, icon: Dumbbell, color: "text-indigo-600", bg: "bg-indigo-50" },
+          { label: "Photos & Videos", value: 0, icon: Image, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Goals Progress", value: `${avgGoalProgress}%`, icon: Target, color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "Notes", value: student.notes.length, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
         ].map((stat) => {
@@ -334,15 +339,15 @@ export function SessionDetail() {
         </div>
       )}
 
-      {activeTab === "sessions" && (
+      {activeTab === "drills" && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-gray-900">All Sessions ({studentSessions.length})</h3>
+            <h3 className="text-gray-900">Drills ({studentSessions.length})</h3>
           </div>
           {studentSessions.length === 0 ? (
             <div className="text-center py-12">
-              <CalendarDays className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-400" style={{ fontSize: "14px" }}>No sessions recorded yet</p>
+              <Dumbbell className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+              <p className="text-gray-400" style={{ fontSize: "14px" }}>No drills recorded yet</p>
             </div>
           ) : (
             <div className="divide-y divide-gray-50">
@@ -376,6 +381,22 @@ export function SessionDetail() {
                 ))}
             </div>
           )}
+        </div>
+      )}
+
+      {activeTab === "media" && (
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <Image className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-500" style={{ fontSize: "15px", fontWeight: 600 }}>Photos & Videos</p>
+          <p className="text-gray-400 mt-1" style={{ fontSize: "13px" }}>Media uploads coming soon</p>
+        </div>
+      )}
+
+      {activeTab === "chats" && (
+        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <MessageCircle className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+          <p className="text-gray-500" style={{ fontSize: "15px", fontWeight: 600 }}>Chats</p>
+          <p className="text-gray-400 mt-1" style={{ fontSize: "13px" }}>Session chats coming soon</p>
         </div>
       )}
 
