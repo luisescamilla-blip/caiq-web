@@ -20,13 +20,13 @@ function formatTime(timestamp: string) {
   return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
-export function KaiChat() {
+export function CaiChat() {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Kai, your AI assistant. I know your students, sessions, goals, and drills. What do you need?`,
+      content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Cai, your AI assistant. I know your students, sessions, goals, and drills. What do you need?`,
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -164,7 +164,7 @@ export function KaiChat() {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Kai anything about your students, sessions, goals..."
+              placeholder="Ask Cai anything about your students, sessions, goals..."
               rows={1}
               disabled={loading}
               className="w-full px-4 pt-3 pb-1 bg-transparent text-gray-800 placeholder-gray-400 outline-none resize-none disabled:opacity-50"
@@ -178,7 +178,7 @@ export function KaiChat() {
             <div className="flex items-center justify-between px-3 pb-2 pt-1">
               <div className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-indigo-400" style={{ fontSize: "12px", fontWeight: 500 }}>Kai</span>
+                <span className="text-indigo-400" style={{ fontSize: "12px", fontWeight: 500 }}>Cai</span>
               </div>
               <button
                 onClick={() => sendMessage()}
