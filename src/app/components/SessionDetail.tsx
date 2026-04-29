@@ -240,7 +240,9 @@ export function SessionDetail() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-gray-900">Goals Overview</h3>
               <button onClick={() => { openGoalModal(); setActiveTab("goals"); }}
-                className="text-indigo-600 hover:text-indigo-700" style={{ fontSize: "13px" }}>+ Add Goal</button>
+                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors" style={{ fontSize: "13px" }}>
+                <Plus className="w-3.5 h-3.5" /> Add Goal
+              </button>
             </div>
             <div className="mb-4">
               <div className="flex items-center justify-between mb-1">
@@ -284,7 +286,9 @@ export function SessionDetail() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-gray-900">Recent Notes</h3>
-              <button onClick={() => openNoteModal()} className="text-indigo-600 hover:text-indigo-700" style={{ fontSize: "13px" }}>+ Add Note</button>
+              <button onClick={() => openNoteModal()} className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg transition-colors" style={{ fontSize: "13px" }}>
+                <Plus className="w-3.5 h-3.5" /> Add Note
+              </button>
             </div>
             {student.notes.length === 0 ? (
               <div className="text-center py-8">
@@ -340,41 +344,50 @@ export function SessionDetail() {
       )}
 
       {activeTab === "drills" && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-            <h3 className="text-gray-900">Drills ({studentSessions.length})</h3>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-gray-900">Drills</h3>
+            <button
+              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl transition-colors"
+              style={{ fontSize: "13px" }}
+            >
+              <Plus className="w-4 h-4" /> Add Drill
+            </button>
           </div>
           {studentSessions.length === 0 ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
               <Dumbbell className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400" style={{ fontSize: "14px" }}>No drills recorded yet</p>
             </div>
           ) : (
-            <div className="divide-y divide-gray-50">
+            <div className="space-y-3">
               {studentSessions
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                 .map((s) => (
-                  <div
-                    key={s.id}
-                    className={`px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer ${s.id === session.id ? "bg-indigo-50" : ""}`}
-                    onClick={() => navigate(`/sessions/${s.id}`)}
-                  >
+                  <div key={s.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3">
-                        <span className={`inline-flex px-2.5 py-1 rounded-lg mt-0.5 ${
-                          s.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                          s.status === "upcoming" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
-                        }`} style={{ fontSize: "11px", fontWeight: 600, textTransform: "capitalize" }}>
-                          {s.status}
-                        </span>
-                        <div>
-                          <p className="text-gray-900" style={{ fontSize: "14px", fontWeight: 600 }}>{s.topic}</p>
-                          {s.notes && <p className="text-gray-500 mt-1" style={{ fontSize: "13px" }}>{s.notes}</p>}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className={`inline-flex px-2 py-0.5 rounded-full ${
+                            s.status === "completed" ? "bg-emerald-100 text-emerald-700" :
+                            s.status === "upcoming" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-500"
+                          }`} style={{ fontSize: "11px", fontWeight: 600, textTransform: "capitalize" }}>
+                            {s.status}
+                          </span>
+                          <span className="text-gray-400 flex items-center gap-1" style={{ fontSize: "11px" }}>
+                            <Calendar className="w-3 h-3" /> {formatDate(s.date)}
+                          </span>
                         </div>
+                        <p className="text-gray-800" style={{ fontSize: "14px", fontWeight: 500 }}>{s.topic}</p>
+                        {s.notes && <p className="text-gray-500 mt-1" style={{ fontSize: "13px", lineHeight: 1.6 }}>{s.notes}</p>}
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-gray-600" style={{ fontSize: "13px" }}>{formatDate(s.date)}</p>
-                        <p className="text-gray-400" style={{ fontSize: "12px" }}>{s.time} · {s.duration} min</p>
+                      <div className="flex gap-1 flex-shrink-0">
+                        <button className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors">
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   </div>

@@ -240,45 +240,34 @@ export function Chat() {
                   />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-0.5">
+                  <div className="flex items-center justify-between">
                     <span
                       className={`truncate ${isSelected ? "text-indigo-700" : "text-gray-900"}`}
                       style={{ fontSize: "14px", fontWeight: unread > 0 ? 700 : 500 }}
                     >
                       {student.name}
                     </span>
-                    {lastMsg && (
-                      <span className="text-gray-400 flex-shrink-0 ml-1" style={{ fontSize: "11px" }}>
-                        {formatTime(lastMsg.timestamp)}
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <p
-                      className={`truncate flex-1 ${unread > 0 ? "text-gray-800" : "text-gray-400"}`}
-                      style={{ fontSize: "12px", fontWeight: unread > 0 ? 600 : 400 }}
-                    >
-                      {lastMsg
-                        ? `${lastMsg.from === "coach" ? "You: " : ""}${lastMsg.content}`
-                        : "No messages yet"}
-                    </p>
-                    {unread > 0 && (
-                      <span className="flex-shrink-0 w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center" style={{ fontSize: "10px", fontWeight: 700 }}>
-                        {unread}
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+                      {lastMsg && (
+                        <span className="text-gray-400" style={{ fontSize: "11px" }}>
+                          {formatTime(lastMsg.timestamp)}
+                        </span>
+                      )}
+                      {unread > 0 && (
+                        <span className="w-4 h-4 rounded-full bg-indigo-500 text-white flex items-center justify-center" style={{ fontSize: "10px", fontWeight: 700 }}>
+                          {unread}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               </button>
             );
           })}
 
-          {/* New conversation section */}
-          {studentsWithoutThread.length > 0 && (
+          {/* New conversation section - removed */}
+          {false && studentsWithoutThread.length > 0 && (
             <div className="mt-2 px-4 pb-2">
-              <p className="mb-1 text-gray-400 uppercase tracking-wider" style={{ fontSize: "10px", fontWeight: 600 }}>
-                Start New Conversation
-              </p>
               {studentsWithoutThread.map((student) => (
                 <button
                   key={student.id}
