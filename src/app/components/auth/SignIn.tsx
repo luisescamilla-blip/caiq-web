@@ -94,7 +94,7 @@ export function SignIn() {
           <div className="flex items-center justify-between mb-1.5 ">
             <label className="text-gray-700" style={{ fontSize: "14px" }}>Password</label>
             <Link 
-              tabindex="-1"
+              tabIndex={-1}
               to="/forgot-password"
               className="text-indigo-600 hover:text-indigo-700 transition-colors"
               style={{ fontSize: "13px" }}

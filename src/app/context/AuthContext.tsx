@@ -18,11 +18,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function mapUser(supabaseUser: User | null, profile?: { name: string } | null): AuthUser | null {
+function mapUser(supabaseUser: User | null): AuthUser | null {
   if (!supabaseUser) return null;
   return {
     id: supabaseUser.id,
-    name: profile?.name ?? supabaseUser.user_metadata?.name ?? supabaseUser.email?.split("@")[0] ?? "Coach",
+    name: supabaseUser.user_metadata?.name ?? supabaseUser.email?.split("@")[0] ?? "Coach",
     email: supabaseUser.email ?? "",
   };
 }
@@ -32,31 +32,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Get initial session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("coaches")
-          .select("name")
-          .eq("id", session.user.id)
-          .single();
-        setUser(mapUser(session.user, profile));
-      }
+    // Get initial session from stored token — no DB call needed
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(mapUser(session?.user ?? null));
       setLoading(false);
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (session?.user) {
-        const { data: profile } = await supabase
-          .from("coaches")
-          .select("name")
-          .eq("id", session.user.id)
-          .single();
-        setUser(mapUser(session.user, profile));
-      } else {
-        setUser(null);
-      }
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(mapUser(session?.user ?? null));
     });
 
     return () => subscription.unsubscribe();
@@ -81,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
-  if (loading) return null; // or a spinner
+  if (loading) return null;
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, signIn, signUp, signOut }}>
