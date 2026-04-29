@@ -1,9 +1,9 @@
-import React, { createContext, useContext, useState, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "../../lib/supabase";
+import { useAuth } from "./AuthContext";
 import {
   Student,
   Session,
-  initialStudents,
-  initialSessions,
   Note,
   Goal,
 } from "../data/mockData";
@@ -11,62 +11,312 @@ import {
 interface AppContextType {
   students: Student[];
   sessions: Session[];
-  addStudent: (student: Student) => void;
-  updateStudent: (student: Student) => void;
-  deleteStudent: (id: string) => void;
-  addSession: (session: Session) => void;
-  updateSession: (session: Session) => void;
-  deleteSession: (id: string) => void;
-  addNote: (studentId: string, note: Note) => void;
-  updateNote: (studentId: string, note: Note) => void;
-  deleteNote: (studentId: string, noteId: string) => void;
-  updateGoal: (studentId: string, goal: Goal) => void;
-  addGoal: (studentId: string, goal: Goal) => void;
-  deleteGoal: (studentId: string, goalId: string) => void;
+  loading: boolean;
+  addStudent: (student: Student) => Promise<void>;
+  updateStudent: (student: Student) => Promise<void>;
+  deleteStudent: (id: string) => Promise<void>;
+  addSession: (session: Session) => Promise<void>;
+  updateSession: (session: Session) => Promise<void>;
+  deleteSession: (id: string) => Promise<void>;
+  addNote: (studentId: string, note: Note) => Promise<void>;
+  updateNote: (studentId: string, note: Note) => Promise<void>;
+  deleteNote: (studentId: string, noteId: string) => Promise<void>;
+  updateGoal: (studentId: string, goal: Goal) => Promise<void>;
+  addGoal: (studentId: string, goal: Goal) => Promise<void>;
+  deleteGoal: (studentId: string, goalId: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-export function AppProvider({ children }: { children: ReactNode }) {
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [sessions, setSessions] = useState<Session[]>(initialSessions);
+// ─── Mappers ──────────────────────────────────────────────────────────────────
 
-  const addStudent = (student: Student) => {
-    setStudents((prev) => [student, ...prev]);
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapStudent(row: any, goals: Goal[], notes: Note[], totalSessions: number): Student {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email ?? "",
+    phone: row.phone ?? "",
+    avatar: row.avatar ?? row.name?.split(" ").map((w: string) => w[0]).join("").toUpperCase() ?? "??",
+    status: row.status,
+    joinDate: row.join_date ?? row.created_at?.slice(0, 10) ?? "",
+    program: row.program ?? "",
+    totalSessions,
+    tags: row.tags ?? [],
+    goals,
+    notes,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapGoal(row: any): Goal {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    progress: row.progress ?? 0,
+    dueDate: row.due_date ?? "",
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapNote(row: any): Note {
+  return {
+    id: row.id,
+    date: row.created_at?.slice(0, 10) ?? "",
+    content: row.content,
+    sessionId: row.session_id,
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapSession(row: any): Session {
+  return {
+    id: row.id,
+    studentId: row.student_id,
+    date: row.date,
+    time: row.time ?? "",
+    duration: row.duration ?? 60,
+    status: row.status,
+    topic: row.topic,
+    notes: row.notes ?? undefined,
+  };
+}
+
+// ─── Provider ─────────────────────────────────────────────────────────────────
+
+export function AppProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const [students, setStudents] = useState<Student[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  // ── Load data when user is authenticated ──────────────────────────────────
+  useEffect(() => {
+    if (!user) {
+      setStudents([]);
+      setSessions([]);
+      return;
+    }
+
+    const loadData = async () => {
+      setLoading(true);
+      try {
+        const coachId = user.id;
+
+        // Fetch students, sessions, goals, notes in parallel
+        const [studentsRes, sessionsRes, goalsRes, notesRes] = await Promise.all([
+          supabase.from("students").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
+          supabase.from("sessions").select("*").eq("coach_id", coachId).order("date", { ascending: false }),
+          supabase.from("goals").select("*").eq("coach_id", coachId).eq("parent_type", "student"),
+          supabase.from("notes").select("*").eq("coach_id", coachId).eq("parent_type", "student").order("created_at", { ascending: false }),
+        ]);
+
+        const rawStudents = studentsRes.data ?? [];
+        const rawSessions = sessionsRes.data ?? [];
+        const rawGoals = goalsRes.data ?? [];
+        const rawNotes = notesRes.data ?? [];
+
+        // Map sessions
+        const mappedSessions = rawSessions.map(mapSession);
+        setSessions(mappedSessions);
+
+        // Build session count per student
+        const sessionCountMap: Record<string, number> = {};
+        rawSessions.forEach((s) => {
+          sessionCountMap[s.student_id] = (sessionCountMap[s.student_id] ?? 0) + 1;
+        });
+
+        // Map students with their goals, notes, and session counts
+        const mappedStudents = rawStudents.map((s) => {
+          const goals = rawGoals.filter((g) => g.parent_id === s.id).map(mapGoal);
+          const notes = rawNotes.filter((n) => n.parent_id === s.id).map(mapNote);
+          const totalSessions = sessionCountMap[s.id] ?? 0;
+          return mapStudent(s, goals, notes, totalSessions);
+        });
+        setStudents(mappedStudents);
+      } catch (err) {
+        console.error("AppContext: failed to load data", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
+  }, [user]);
+
+  // ── Students ──────────────────────────────────────────────────────────────
+
+  const addStudent = async (student: Student) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("students")
+      .insert({
+        id: student.id,
+        coach_id: user.id,
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        avatar: student.avatar,
+        status: student.status,
+        program: student.program,
+        join_date: student.joinDate,
+        tags: student.tags,
+      })
+      .select()
+      .single();
+
+    if (error) { console.error("addStudent error:", error); throw error; }
+    const mapped = mapStudent(data, [], [], 0);
+    setStudents((prev) => [mapped, ...prev]);
   };
 
-  const updateStudent = (student: Student) => {
+  const updateStudent = async (student: Student) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("students")
+      .update({
+        name: student.name,
+        email: student.email,
+        phone: student.phone,
+        avatar: student.avatar,
+        status: student.status,
+        program: student.program,
+        join_date: student.joinDate,
+        tags: student.tags,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", student.id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("updateStudent error:", error); throw error; }
     setStudents((prev) => prev.map((s) => (s.id === student.id ? student : s)));
   };
 
-  const deleteStudent = (id: string) => {
+  const deleteStudent = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("students")
+      .delete()
+      .eq("id", id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("deleteStudent error:", error); throw error; }
     setStudents((prev) => prev.filter((s) => s.id !== id));
     setSessions((prev) => prev.filter((s) => s.studentId !== id));
   };
 
-  const addSession = (session: Session) => {
-    setSessions((prev) => [session, ...prev]);
-  };
+  // ── Sessions ──────────────────────────────────────────────────────────────
 
-  const updateSession = (session: Session) => {
-    setSessions((prev) =>
-      prev.map((s) => (s.id === session.id ? session : s))
-    );
-  };
+  const addSession = async (session: Session) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("sessions")
+      .insert({
+        id: session.id,
+        coach_id: user.id,
+        student_id: session.studentId,
+        topic: session.topic,
+        date: session.date,
+        time: session.time,
+        duration: session.duration,
+        status: session.status,
+        notes: session.notes,
+      })
+      .select()
+      .single();
 
-  const deleteSession = (id: string) => {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-  };
-
-  const addNote = (studentId: string, note: Note) => {
+    if (error) { console.error("addSession error:", error); throw error; }
+    setSessions((prev) => [mapSession(data), ...prev]);
+    // Update student totalSessions count
     setStudents((prev) =>
       prev.map((s) =>
-        s.id === studentId ? { ...s, notes: [note, ...s.notes] } : s
+        s.id === session.studentId ? { ...s, totalSessions: s.totalSessions + 1 } : s
       )
     );
   };
 
-  const updateNote = (studentId: string, note: Note) => {
+  const updateSession = async (session: Session) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("sessions")
+      .update({
+        student_id: session.studentId,
+        topic: session.topic,
+        date: session.date,
+        time: session.time,
+        duration: session.duration,
+        status: session.status,
+        notes: session.notes,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", session.id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("updateSession error:", error); throw error; }
+    setSessions((prev) => prev.map((s) => (s.id === session.id ? session : s)));
+  };
+
+  const deleteSession = async (id: string) => {
+    if (!user) return;
+    const sessionToDelete = sessions.find((s) => s.id === id);
+    const { error } = await supabase
+      .from("sessions")
+      .delete()
+      .eq("id", id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("deleteSession error:", error); throw error; }
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    // Update student totalSessions count
+    if (sessionToDelete) {
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === sessionToDelete.studentId
+            ? { ...s, totalSessions: Math.max(0, s.totalSessions - 1) }
+            : s
+        )
+      );
+    }
+  };
+
+  // ── Notes ─────────────────────────────────────────────────────────────────
+
+  const addNote = async (studentId: string, note: Note) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        id: note.id,
+        coach_id: user.id,
+        content: note.content,
+        parent_type: "student",
+        parent_id: studentId,
+      })
+      .select()
+      .single();
+
+    if (error) { console.error("addNote error:", error); throw error; }
+    const mapped = mapNote(data);
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.id === studentId ? { ...s, notes: [mapped, ...s.notes] } : s
+      )
+    );
+  };
+
+  const updateNote = async (studentId: string, note: Note) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("notes")
+      .update({
+        content: note.content,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", note.id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("updateNote error:", error); throw error; }
     setStudents((prev) =>
       prev.map((s) =>
         s.id === studentId
@@ -76,7 +326,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const deleteNote = (studentId: string, noteId: string) => {
+  const deleteNote = async (studentId: string, noteId: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("notes")
+      .delete()
+      .eq("id", noteId)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("deleteNote error:", error); throw error; }
     setStudents((prev) =>
       prev.map((s) =>
         s.id === studentId
@@ -86,15 +344,49 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const addGoal = (studentId: string, goal: Goal) => {
+  // ── Goals ─────────────────────────────────────────────────────────────────
+
+  const addGoal = async (studentId: string, goal: Goal) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("goals")
+      .insert({
+        id: goal.id,
+        coach_id: user.id,
+        title: goal.title,
+        status: goal.status,
+        progress: goal.progress,
+        due_date: goal.dueDate || null,
+        parent_type: "student",
+        parent_id: studentId,
+      })
+      .select()
+      .single();
+
+    if (error) { console.error("addGoal error:", error); throw error; }
+    const mapped = mapGoal(data);
     setStudents((prev) =>
       prev.map((s) =>
-        s.id === studentId ? { ...s, goals: [...s.goals, goal] } : s
+        s.id === studentId ? { ...s, goals: [...s.goals, mapped] } : s
       )
     );
   };
 
-  const updateGoal = (studentId: string, goal: Goal) => {
+  const updateGoal = async (studentId: string, goal: Goal) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("goals")
+      .update({
+        title: goal.title,
+        status: goal.status,
+        progress: goal.progress,
+        due_date: goal.dueDate || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", goal.id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("updateGoal error:", error); throw error; }
     setStudents((prev) =>
       prev.map((s) =>
         s.id === studentId
@@ -104,7 +396,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const deleteGoal = (studentId: string, goalId: string) => {
+  const deleteGoal = async (studentId: string, goalId: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("goals")
+      .delete()
+      .eq("id", goalId)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("deleteGoal error:", error); throw error; }
     setStudents((prev) =>
       prev.map((s) =>
         s.id === studentId
@@ -119,6 +419,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       value={{
         students,
         sessions,
+        loading,
         addStudent,
         updateStudent,
         deleteStudent,
