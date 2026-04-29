@@ -231,10 +231,10 @@ export function Sessions() {
             </div>
           ) : (
             sorted.map((session) => (
-              <div key={session.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-indigo-200 transition-colors group">
+              <div key={session.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:border-indigo-200 transition-colors group cursor-pointer" onClick={() => navigate(`/sessions/${session.id}`)}>
                 <div
-                  className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer"
-                  onClick={() => navigate(`/students/${session.studentId}`)}
+                  className="flex items-center gap-3 flex-1 min-w-0"
+                  onClick={() => navigate(`/sessions/${session.id}`)}
                 >
                   <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center flex-shrink-0">
                     <span className="text-white" style={{ fontSize: "12px", fontWeight: 700 }}>{getStudentAvatar(session.studentId)}</span>
@@ -257,15 +257,15 @@ export function Sessions() {
                   <span className={`px-2.5 py-1 rounded-lg ${STATUS_STYLES[session.status]}`} style={{ fontSize: "11px", fontWeight: 600, textTransform: "capitalize" }}>
                     {session.status}
                   </span>
-                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
                     <button
-                      onClick={() => openModal(session)}
+                      onClick={(e) => { e.stopPropagation(); openModal(session); }}
                       className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                     >
                       <Edit className="w-3.5 h-3.5" />
                     </button>
                     <button
-                      onClick={() => setConfirmDelete(session.id)}
+                      onClick={(e) => { e.stopPropagation(); setConfirmDelete(session.id); }}
                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-3.5 h-3.5" />

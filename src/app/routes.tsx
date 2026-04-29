@@ -9,6 +9,7 @@ import { Dashboard } from "./components/Dashboard";
 import { Students } from "./components/Students";
 import { StudentDetail } from "./components/StudentDetail";
 import { Sessions } from "./components/Sessions";
+import { SessionDetail } from "./components/SessionDetail";
 import { Progress } from "./components/Progress";
 import { Settings } from "./components/Settings";
 import { Chat } from "./components/Chat";
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
           { path: "students", Component: Students },
           { path: "students/:id", Component: StudentDetail },
           { path: "sessions", Component: Sessions },
+          { path: "sessions/:id", Component: SessionDetail },
           { path: "progress", Component: Progress },
           { path: "settings", Component: Settings },
           { path: "chat", Component: Chat },
