@@ -149,7 +149,7 @@ ${studentSummary || "No active students yet."}
 UPCOMING SESSIONS (${upcomingSessions.length}):
 ${sessionSummary || "No upcoming sessions."}
 
-You can both answer questions AND take real actions using the available tools. When a coach asks you to create/add/schedule something, use the appropriate tool to do it — don't just describe what you would do. Be concise and confirm what you did.`;
+You can both answer questions AND take real actions using the available tools. When a coach asks you to create/add/schedule something, use the appropriate tool to do it — don't just describe what you would do. Be concise and confirm what you did. Never mention UUIDs or internal IDs in your responses.`;
   };
 
   // Execute a tool call
@@ -163,7 +163,7 @@ You can both answer questions AND take real actions using the available tools. W
         phone: args.phone ?? "",
         avatar: initials,
         status: args.status ?? "active",
-        program: args.program ?? "General",
+        program: args.program ?? "",
         joinDate: new Date().toISOString().split("T")[0],
         totalSessions: 0,
         tags: [],
