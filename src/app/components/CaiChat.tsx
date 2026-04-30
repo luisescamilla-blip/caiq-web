@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
 import { Student, Session, Goal, Note } from "../data/mockData";
-import { Send, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
+import { Send, Sparkles, Loader2, CheckCircle2, Mic, MicOff } from "lucide-react";
 
 interface Message {
   id: string;
@@ -117,12 +117,49 @@ export function CaiChat() {
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [listening, setListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const toggleVoice = () => {
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      alert("Voice input is not supported in this browser. Try Chrome or Safari.");
+      return;
+    }
+
+    if (listening) {
+      recognitionRef.current?.stop();
+      setListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = "en-US";
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = () => setListening(true);
+    recognition.onend = () => setListening(false);
+    recognition.onerror = () => setListening(false);
+
+    recognition.onresult = (event: any) => {
+      const transcript = event.results[0][0].transcript;
+      setInput(transcript);
+      // Auto-send after voice input
+      setTimeout(() => {
+        sendMessage(transcript);
+      }, 300);
+    };
+
+    recognitionRef.current = recognition;
+    recognition.start();
+  };
 
   const buildSystemPrompt = () => {
     const activeStudents = students.filter((s) => s.status === "active");
@@ -453,17 +490,31 @@ You can both answer questions AND take real actions using the available tools. W
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
                 <span className="text-indigo-400" style={{ fontSize: "12px", fontWeight: 500 }}>Cai · powered by Groq</span>
               </div>
-              <button
-                onClick={() => sendMessage()}
-                disabled={!input.trim() || loading}
-                className={`p-1.5 rounded-lg transition-all ${
-                  input.trim() && !loading
-                    ? "bg-indigo-600 text-white hover:bg-indigo-700"
-                    : "bg-gray-100 text-gray-400 cursor-not-allowed"
-                }`}
-              >
-                <Send className="w-4 h-4" />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleVoice}
+                  disabled={loading}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    listening
+                      ? "bg-red-500 text-white animate-pulse"
+                      : "text-gray-400 hover:text-indigo-600 hover:bg-indigo-50"
+                  }`}
+                  title={listening ? "Stop listening" : "Speak to Cai"}
+                >
+                  {listening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                </button>
+                <button
+                  onClick={() => sendMessage()}
+                  disabled={!input.trim() || loading}
+                  className={`p-1.5 rounded-lg transition-all ${
+                    input.trim() && !loading
+                      ? "bg-indigo-600 text-white hover:bg-indigo-700"
+                      : "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  }`}
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           </div>
           <p className="text-center text-gray-400 mt-2" style={{ fontSize: "11px" }}>
