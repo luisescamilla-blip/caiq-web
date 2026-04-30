@@ -18,7 +18,7 @@ const GROQ_MODEL = "llama-3.3-70b-versatile";
 const SUGGESTED_PROMPTS = [
   "Summarize my upcoming sessions this week",
   "Which students need the most attention?",
-  "Add a new student named Marco Silva",
+  "Who has the most sessions this month?",
   "What goals are behind schedule?",
 ];
 
@@ -43,8 +43,8 @@ const TOOLS = [
           name: { type: "string", description: "Full name of the student" },
           email: { type: "string", description: "Email address (optional)" },
           phone: { type: "string", description: "Phone number (optional)" },
-          program: { type: "string", description: "Program or sport, e.g. Soccer - Attacking, Basketball, etc." },
-          status: { type: "string", enum: ["active", "inactive", "on-hold"], description: "Student status" },
+          program: { type: "string", description: "Program or sport only if explicitly mentioned by the coach. Leave empty if not specified." },
+          status: { type: "string", enum: ["active", "inactive", "on-hold"], description: "Student status, default active" },
         },
         required: ["name"],
       },
