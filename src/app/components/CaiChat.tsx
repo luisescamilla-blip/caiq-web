@@ -129,7 +129,7 @@ export function CaiChat() {
   const toggleVoice = () => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
-      alert("Voice input is not supported in this browser. Try Chrome or Safari.");
+      alert("Voice input is not supported in this browser. Try Chrome.");
       return;
     }
 
@@ -468,6 +468,12 @@ You can both answer questions AND take real actions using the available tools. W
       {/* Input */}
       <div className="bg-white border-t border-gray-200 px-4 lg:px-8 py-4 flex-shrink-0">
         <div className="max-w-3xl mx-auto">
+          {listening && (
+            <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
+              <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              <span className="text-red-600" style={{ fontSize: "13px", fontWeight: 500 }}>Listening... speak now</span>
+            </div>
+          )}
           <div className="border border-gray-300 rounded-2xl overflow-hidden focus-within:ring-2 focus-within:ring-indigo-300 focus-within:border-indigo-400 transition-all bg-white shadow-sm">
             <textarea
               ref={inputRef}
