@@ -15,6 +15,7 @@ import {
   Search,
   LogOut,
   MessageSquare,
+  Dumbbell,
 } from "lucide-react";
 
 const navItems = [
@@ -23,6 +24,7 @@ const navItems = [
   { icon: CalendarDays, label: "Sessions", path: "/sessions" },
   { icon: TrendingUp, label: "Progress", path: "/progress" },
   { icon: MessageSquare, label: "Messages", path: "/chat" },
+  { icon: Dumbbell, label: "Drills", path: "/drills" },
 ];
 
 const caiItems = [
