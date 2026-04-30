@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useApp } from "../context/AppContext";
-import { Send, Sparkles, Loader2 } from "lucide-react";
+import { Student, Session, Goal, Note } from "../data/mockData";
+import { Send, Sparkles, Loader2, CheckCircle2 } from "lucide-react";
 
 interface Message {
   id: string;
   role: "user" | "assistant";
   content: string;
   timestamp: string;
+  action?: { type: string; summary: string };
 }
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
@@ -15,24 +17,101 @@ const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 const SUGGESTED_PROMPTS = [
   "Summarize my upcoming sessions this week",
-  "Which students need the most attention right now?",
-  "Help me write a session note for a student",
+  "Which students need the most attention?",
+  "Add a new student named Marco Silva",
   "What goals are behind schedule?",
 ];
+
+function generateId() {
+  return "id" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+}
 
 function formatTime(timestamp: string) {
   return new Date(timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+// Tool definitions for Groq function calling
+const TOOLS = [
+  {
+    type: "function",
+    function: {
+      name: "create_student",
+      description: "Create a new student/athlete for the coach",
+      parameters: {
+        type: "object",
+        properties: {
+          name: { type: "string", description: "Full name of the student" },
+          email: { type: "string", description: "Email address (optional)" },
+          phone: { type: "string", description: "Phone number (optional)" },
+          program: { type: "string", description: "Program or sport, e.g. Soccer - Attacking, Basketball, etc." },
+          status: { type: "string", enum: ["active", "inactive", "on-hold"], description: "Student status" },
+        },
+        required: ["name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "create_session",
+      description: "Schedule a new session for a student",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: { type: "string", description: "Name of the student (will be matched)" },
+          topic: { type: "string", description: "Topic or focus of the session" },
+          date: { type: "string", description: "Date in YYYY-MM-DD format" },
+          time: { type: "string", description: "Time in HH:MM format, e.g. 10:00" },
+          duration: { type: "number", description: "Duration in minutes, default 60" },
+          status: { type: "string", enum: ["upcoming", "completed", "cancelled"], description: "Session status" },
+        },
+        required: ["student_name", "topic", "date"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_note",
+      description: "Add a note for a student",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: { type: "string", description: "Name of the student" },
+          content: { type: "string", description: "Note content" },
+        },
+        required: ["student_name", "content"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "add_goal",
+      description: "Add a goal for a student",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: { type: "string", description: "Name of the student" },
+          title: { type: "string", description: "Goal title/description" },
+          due_date: { type: "string", description: "Due date in YYYY-MM-DD format (optional)" },
+          progress: { type: "number", description: "Initial progress 0-100, default 0" },
+        },
+        required: ["student_name", "title"],
+      },
+    },
+  },
+];
+
 export function CaiChat() {
   const { user } = useAuth();
-  const { students, sessions } = useApp();
+  const { students, sessions, addStudent, addSession, addNote, addGoal } = useApp();
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Cai, your AI assistant. I know your students, sessions, and goals. What do you need?`,
+      content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Cai. I can answer questions about your students and sessions, and I can also take actions — like adding a student, scheduling a session, or logging a note. What do you need?`,
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -45,19 +124,14 @@ export function CaiChat() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Build system prompt with live coach context
   const buildSystemPrompt = () => {
     const activeStudents = students.filter((s) => s.status === "active");
-    const upcomingSessions = sessions
-      .filter((s) => s.status === "upcoming")
-      .slice(0, 10);
+    const upcomingSessions = sessions.filter((s) => s.status === "upcoming").slice(0, 10);
 
     const studentSummary = activeStudents.map((s) => {
-      const goalsInProgress = s.goals.filter((g) => g.status === "in-progress");
       const avgProgress = s.goals.length > 0
-        ? Math.round(s.goals.reduce((a, g) => a + g.progress, 0) / s.goals.length)
-        : 0;
-      return `- ${s.name} (${s.program}): ${s.totalSessions} sessions, ${avgProgress}% avg goal progress${goalsInProgress.length > 0 ? `, working on: ${goalsInProgress.map((g) => g.title).join(", ")}` : ""}`;
+        ? Math.round(s.goals.reduce((a, g) => a + g.progress, 0) / s.goals.length) : 0;
+      return `- ${s.name} (ID: ${s.id}, Program: ${s.program}, Sessions: ${s.totalSessions}, Goal progress: ${avgProgress}%)`;
     }).join("\n");
 
     const sessionSummary = upcomingSessions.map((s) => {
@@ -65,7 +139,7 @@ export function CaiChat() {
       return `- ${s.date} ${s.time}: ${student?.name ?? "Unknown"} — ${s.topic} (${s.duration}min)`;
     }).join("\n");
 
-    return `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage their students, sessions, goals, and drills.
+    return `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage students, sessions, goals, and notes.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
@@ -75,7 +149,83 @@ ${studentSummary || "No active students yet."}
 UPCOMING SESSIONS (${upcomingSessions.length}):
 ${sessionSummary || "No upcoming sessions."}
 
-Be concise, helpful, and direct. Use the coach's real data above to answer questions. If asked to write notes or summaries, keep them professional and practical.`;
+You can both answer questions AND take real actions using the available tools. When a coach asks you to create/add/schedule something, use the appropriate tool to do it — don't just describe what you would do. Be concise and confirm what you did.`;
+  };
+
+  // Execute a tool call
+  const executeTool = async (name: string, args: any): Promise<{ summary: string; type: string }> => {
+    if (name === "create_student") {
+      const initials = args.name.split(" ").map((w: string) => w[0]).join("").toUpperCase().slice(0, 2);
+      const newStudent: Student = {
+        id: generateId(),
+        name: args.name,
+        email: args.email ?? "",
+        phone: args.phone ?? "",
+        avatar: initials,
+        status: args.status ?? "active",
+        program: args.program ?? "General",
+        joinDate: new Date().toISOString().split("T")[0],
+        totalSessions: 0,
+        tags: [],
+        goals: [],
+        notes: [],
+      };
+      await addStudent(newStudent);
+      return { type: "create_student", summary: `✅ Added student: **${args.name}**` };
+    }
+
+    if (name === "create_session") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.student_name.toLowerCase())
+      );
+      if (!student) return { type: "create_session", summary: `❌ Could not find student matching "${args.student_name}"` };
+
+      const newSession: Session = {
+        id: generateId(),
+        studentId: student.id,
+        topic: args.topic,
+        date: args.date,
+        time: args.time ?? "10:00",
+        duration: args.duration ?? 60,
+        status: args.status ?? "upcoming",
+      };
+      await addSession(newSession);
+      return { type: "create_session", summary: `✅ Scheduled session for **${student.name}**: ${args.topic} on ${args.date}` };
+    }
+
+    if (name === "add_note") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.student_name.toLowerCase())
+      );
+      if (!student) return { type: "add_note", summary: `❌ Could not find student matching "${args.student_name}"` };
+
+      const note: Note = {
+        id: generateId(),
+        date: new Date().toISOString().split("T")[0],
+        content: args.content,
+      };
+      await addNote(student.id, note);
+      return { type: "add_note", summary: `✅ Note added for **${student.name}**` };
+    }
+
+    if (name === "add_goal") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.student_name.toLowerCase())
+      );
+      if (!student) return { type: "add_goal", summary: `❌ Could not find student matching "${args.student_name}"` };
+
+      const goal: Goal = {
+        id: generateId(),
+        title: args.title,
+        status: "not-started",
+        progress: args.progress ?? 0,
+        dueDate: args.due_date ?? "",
+      };
+      await addGoal(student.id, goal);
+      return { type: "add_goal", summary: `✅ Goal added for **${student.name}**: ${args.title}` };
+    }
+
+    return { type: "unknown", summary: "❌ Unknown action" };
   };
 
   const sendMessage = async (text?: string) => {
@@ -109,25 +259,71 @@ Be concise, helpful, and direct. Use the coach's real data above to answer quest
               .filter((m) => m.id !== "welcome")
               .map((m) => ({ role: m.role, content: m.content })),
           ],
+          tools: TOOLS,
+          tool_choice: "auto",
           max_tokens: 1024,
           temperature: 0.7,
         }),
       });
 
       if (!response.ok) throw new Error(`Groq error: ${response.status}`);
-
       const data = await response.json();
-      const reply = data.choices?.[0]?.message?.content ?? "Sorry, I couldn't get a response.";
+      const choice = data.choices?.[0];
 
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `a-${Date.now()}`,
-          role: "assistant",
-          content: reply,
-          timestamp: new Date().toISOString(),
-        },
-      ]);
+      // Handle tool calls
+      if (choice?.message?.tool_calls?.length > 0) {
+        const toolCall = choice.message.tool_calls[0];
+        const toolName = toolCall.function.name;
+        const toolArgs = JSON.parse(toolCall.function.arguments);
+
+        const result = await executeTool(toolName, toolArgs);
+
+        // Get a natural language follow-up from Groq
+        const followUp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: GROQ_MODEL,
+            messages: [
+              { role: "system", content: buildSystemPrompt() },
+              ...updatedMessages.filter((m) => m.id !== "welcome").map((m) => ({ role: m.role, content: m.content })),
+              { role: "assistant", content: null, tool_calls: choice.message.tool_calls },
+              { role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(result) },
+            ],
+            max_tokens: 256,
+            temperature: 0.7,
+          }),
+        });
+
+        const followUpData = await followUp.json();
+        const reply = followUpData.choices?.[0]?.message?.content ?? result.summary;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-${Date.now()}`,
+            role: "assistant",
+            content: reply,
+            timestamp: new Date().toISOString(),
+            action: result,
+          },
+        ]);
+      } else {
+        // Regular text response
+        const reply = choice?.message?.content ?? "Sorry, I couldn't get a response.";
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `a-${Date.now()}`,
+            role: "assistant",
+            content: reply,
+            timestamp: new Date().toISOString(),
+          },
+        ]);
+      }
     } catch (err) {
       setMessages((prev) => [
         ...prev,
@@ -157,11 +353,9 @@ Be concise, helpful, and direct. Use the coach's real data above to answer quest
   return (
     <div className="flex flex-col overflow-hidden bg-gray-50" style={{ height: "calc(100vh - 65px)" }}>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6">
         <div className="max-w-3xl mx-auto space-y-6">
 
-          {/* Suggested prompts */}
           {messages.length === 1 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
               {SUGGESTED_PROMPTS.map((prompt) => (
@@ -192,6 +386,15 @@ Be concise, helpful, and direct. Use the coach's real data above to answer quest
                 )}
 
                 <div className={`max-w-xl group flex flex-col ${isUser ? "items-end" : "items-start"}`}>
+                  {/* Action badge */}
+                  {msg.action && (
+                    <div className="flex items-center gap-1.5 mb-1.5 px-2.5 py-1 bg-emerald-50 border border-emerald-200 rounded-full">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-emerald-700" style={{ fontSize: "11px", fontWeight: 600 }}>
+                        Action completed
+                      </span>
+                    </div>
+                  )}
                   <div
                     className={`px-4 py-3 rounded-2xl ${
                       isUser
@@ -234,7 +437,7 @@ Be concise, helpful, and direct. Use the coach's real data above to answer quest
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Cai anything about your students, sessions, goals..."
+              placeholder="Ask Cai anything, or say 'Add student John Smith'..."
               rows={1}
               disabled={loading}
               className="w-full px-4 pt-3 pb-1 bg-transparent text-gray-800 placeholder-gray-400 outline-none resize-none disabled:opacity-50"
