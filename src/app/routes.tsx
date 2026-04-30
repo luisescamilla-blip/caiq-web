@@ -15,6 +15,7 @@ import { Settings } from "./components/Settings";
 import { Chat } from "./components/Chat";
 import { CaiChat } from "./components/CaiChat";
 import { Drills } from "./components/Drills";
+import { DrillDetail } from "./components/DrillDetail";
 
 export const router = createBrowserRouter([
   // Auth routes
@@ -44,6 +45,7 @@ export const router = createBrowserRouter([
           { path: "chat", Component: Chat },
           { path: "kai", Component: CaiChat },
           { path: "drills", Component: Drills },
+          { path: "drills/:id", Component: DrillDetail },
         ],
       },
     ],
