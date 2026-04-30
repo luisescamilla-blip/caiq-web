@@ -488,7 +488,7 @@ You can both answer questions AND take real actions using the available tools. W
             <div className="flex items-center justify-between px-3 pb-2 pt-1">
               <div className="flex items-center gap-1.5">
                 <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="text-indigo-400" style={{ fontSize: "12px", fontWeight: 500 }}>Cai · powered by Groq</span>
+                <span className="text-indigo-400" style={{ fontSize: "12px", fontWeight: 500 }}>Cai</span>
               </div>
               <div className="flex items-center gap-2">
                 <button
