@@ -101,11 +101,25 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "delete_student",
+      description: "Delete a student permanently",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: { type: "string", description: "Name of the student to delete" },
+        },
+        required: ["student_name"],
+      },
+    },
+  },
 ];
 
 export function CaiChat() {
   const { user } = useAuth();
-  const { students, sessions, addStudent, addSession, addNote, addGoal } = useApp();
+  const { students, sessions, addStudent, addSession, addNote, addGoal, deleteStudent } = useApp();
 
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -243,6 +257,15 @@ You can both answer questions AND take real actions using the available tools. W
       };
       await addNote(student.id, note);
       return { type: "add_note", summary: `✅ Note added for **${student.name}**` };
+    }
+
+    if (name === "delete_student") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.student_name.toLowerCase())
+      );
+      if (!student) return { type: "delete_student", summary: `❌ Could not find student matching "${args.student_name}"` };
+      await deleteStudent(student.id);
+      return { type: "delete_student", summary: `✅ Deleted student: **${student.name}**` };
     }
 
     if (name === "add_goal") {
