@@ -225,7 +225,7 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Player Spotlight */
+        {/* Player Spotlight */}
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
