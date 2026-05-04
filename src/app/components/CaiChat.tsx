@@ -1,16 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useApp } from "../context/AppContext";
+import { useApp, Conversation, ConversationMessage } from "../context/AppContext";
+import { useSearchParams, useNavigate } from "react-router";
 import { Student, Session, Goal, Note } from "../data/mockData";
-import { Send, Sparkles, Loader2, CheckCircle2, Mic, MicOff } from "lucide-react";
+import { Send, Sparkles, Loader2, CheckCircle2, Mic, MicOff, Plus } from "lucide-react";
 
-interface Message {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  timestamp: string;
-  action?: { type: string; summary: string };
-}
+type Message = ConversationMessage;
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_MODEL = "llama-3.3-70b-versatile";
@@ -151,19 +146,44 @@ const TOOLS = [
 
 export function CaiChat() {
   const { user } = useAuth();
-  const { students, sessions, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent } = useApp();
+  const { students, sessions, conversations, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent, saveConversation } = useApp();
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Cai. I can answer questions about your players and sessions, and I can also take actions — like adding a player, scheduling a session, or logging a note. What do you need?`,
-      timestamp: new Date().toISOString(),
-    },
-  ]);
+  const convIdParam = searchParams.get("conv");
+
+  const welcomeMsg: Message = {
+    id: "welcome",
+    role: "assistant",
+    content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Cai. I can answer questions about your players and sessions, and I can also take actions — like adding a player, scheduling a session, or logging a note. What do you need?`,
+    timestamp: new Date().toISOString(),
+  };
+
+  const [convId, setConvId] = useState<string>(() => convIdParam ?? crypto.randomUUID());
+  const [messages, setMessages] = useState<Message[]>([welcomeMsg]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load existing conversation if conv param provided
+  useEffect(() => {
+    if (convIdParam) {
+      const existing = conversations.find((c) => c.id === convIdParam);
+      if (existing && existing.messages.length > 0) {
+        setConvId(existing.id);
+        setMessages(existing.messages);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [convIdParam]);
+
+  const startNewConversation = () => {
+    const newId = crypto.randomUUID();
+    setConvId(newId);
+    setMessages([welcomeMsg]);
+    navigate("/kai");
+  };
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const recognitionRef = useRef<any>(null);
@@ -390,6 +410,49 @@ You can both answer questions AND take real actions using the available tools. W
     return { type: "unknown", summary: "❌ Unknown action" };
   };
 
+  // Debounced save — fires 2s after last message
+  const scheduleSave = useCallback((msgs: Message[], title?: string, tags?: string[]) => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+    saveTimeoutRef.current = setTimeout(async () => {
+      const realMsgs = msgs.filter((m) => m.id !== "welcome");
+      if (realMsgs.length === 0) return;
+      const conv: Conversation = {
+        id: convId,
+        title: title ?? "Conversation",
+        tags: tags ?? [],
+        messages: msgs,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+      try { await saveConversation(conv); } catch (e) { console.error("Auto-save failed", e); }
+    }, 2000);
+  }, [convId, saveConversation]);
+
+  // Generate title + tags from conversation using Groq (fire-and-forget)
+  const generateMeta = async (msgs: Message[]) => {
+    const realMsgs = msgs.filter((m) => m.id !== "welcome").slice(0, 6);
+    if (realMsgs.length < 2) return;
+    try {
+      const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${GROQ_API_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: GROQ_MODEL,
+          messages: [
+            { role: "system", content: "You are a tagging assistant. Given a conversation, reply with a JSON object: { \"title\": \"short title (max 6 words)\", \"tags\": [\"tag1\", \"tag2\"] } — tags are lowercase single words or short phrases relevant to the conversation (player names, drills, topics). No explanation, just JSON." },
+            { role: "user", content: realMsgs.map((m) => `${m.role}: ${m.content}`).join("\n") },
+          ],
+          max_tokens: 100,
+          temperature: 0.3,
+        }),
+      });
+      const data = await res.json();
+      const raw = data.choices?.[0]?.message?.content ?? "{}";
+      const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] ?? "{}");
+      return { title: parsed.title ?? "Conversation", tags: parsed.tags ?? [] };
+    } catch { return undefined; }
+  };
+
   const sendMessage = async (text?: string) => {
     const content = (text ?? input).trim();
     if (!content || loading) return;
@@ -463,28 +526,24 @@ You can both answer questions AND take real actions using the available tools. W
         const followUpData = await followUp.json();
         const reply = followUpData.choices?.[0]?.message?.content ?? result.summary;
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${Date.now()}`,
-            role: "assistant",
-            content: reply,
-            timestamp: new Date().toISOString(),
-            action: result,
-          },
-        ]);
+        setMessages((prev) => {
+          const next = [
+            ...prev,
+            { id: `a-${Date.now()}`, role: "assistant" as const, content: reply, timestamp: new Date().toISOString(), action: result },
+          ];
+          generateMeta(next).then((meta) => scheduleSave(next, meta?.title, meta?.tags));
+          return next;
+        });
       } else {
-        // Regular text response
         const reply = choice?.message?.content ?? "Sorry, I couldn't get a response.";
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `a-${Date.now()}`,
-            role: "assistant",
-            content: reply,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+        setMessages((prev) => {
+          const next = [
+            ...prev,
+            { id: `a-${Date.now()}`, role: "assistant" as const, content: reply, timestamp: new Date().toISOString() },
+          ];
+          generateMeta(next).then((meta) => scheduleSave(next, meta?.title, meta?.tags));
+          return next;
+        });
       }
     } catch (err) {
       setMessages((prev) => [
@@ -514,6 +573,24 @@ You can both answer questions AND take real actions using the available tools. W
 
   return (
     <div className="flex flex-col overflow-hidden bg-gray-50" style={{ height: "calc(100vh - 65px)" }}>
+
+      {/* Cai Header */}
+      <div className="bg-white border-b border-gray-100 px-4 lg:px-8 py-3 flex items-center justify-between flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+          </div>
+          <span className="text-gray-900" style={{ fontSize: "14px", fontWeight: 600 }}>Cai</span>
+          {convIdParam && <span className="text-gray-400" style={{ fontSize: "12px" }}>· resumed conversation</span>}
+        </div>
+        <button
+          onClick={startNewConversation}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-xl transition-colors"
+          style={{ fontSize: "13px" }}
+        >
+          <Plus className="w-3.5 h-3.5" /> New Chat
+        </button>
+      </div>
 
       <div className="flex-1 overflow-y-auto px-4 lg:px-8 py-6">
         <div className="max-w-3xl mx-auto space-y-6">

@@ -8,6 +8,23 @@ import {
   Goal,
 } from "../data/mockData";
 
+export interface ConversationMessage {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  timestamp: string;
+  action?: { type: string; summary: string };
+}
+
+export interface Conversation {
+  id: string;
+  title: string;
+  tags: string[];
+  messages: ConversationMessage[];
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Drill {
   id: string;
   name: string;
@@ -24,6 +41,7 @@ interface AppContextType {
   students: Student[];
   sessions: Session[];
   drills: Drill[];
+  conversations: Conversation[];
   loading: boolean;
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (student: Student) => Promise<void>;
@@ -40,6 +58,8 @@ interface AppContextType {
   addDrill: (drill: Drill) => Promise<void>;
   updateDrill: (drill: Drill) => Promise<void>;
   deleteDrill: (id: string) => Promise<void>;
+  saveConversation: (conv: Conversation) => Promise<void>;
+  deleteConversation: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -121,6 +141,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ── Load data when user is authenticated ──────────────────────────────────
@@ -137,12 +158,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const coachId = user.id;
 
         // Fetch students, sessions, goals, notes, drills in parallel
-        const [studentsRes, sessionsRes, goalsRes, notesRes, drillsRes] = await Promise.all([
+        const [studentsRes, sessionsRes, goalsRes, notesRes, drillsRes, convsRes] = await Promise.all([
           supabase.from("students").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
           supabase.from("sessions").select("*").eq("coach_id", coachId).order("date", { ascending: false }),
           supabase.from("goals").select("*").eq("coach_id", coachId).eq("parent_type", "student"),
           supabase.from("notes").select("*").eq("coach_id", coachId).eq("parent_type", "student").order("created_at", { ascending: false }),
           supabase.from("drills").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
+          supabase.from("conversations").select("*").eq("coach_id", coachId).order("updated_at", { ascending: false }),
         ]);
 
         const rawStudents = studentsRes.data ?? [];
@@ -150,6 +172,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const rawGoals = goalsRes.data ?? [];
         const rawNotes = notesRes.data ?? [];
         const rawDrills = drillsRes.data ?? [];
+        const rawConvs = convsRes.data ?? [];
 
         // Map sessions
         const mappedSessions = rawSessions.map(mapSession);
@@ -157,6 +180,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
         // Map drills
         setDrills(rawDrills.map(mapDrill));
+
+        // Map conversations
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        setConversations(rawConvs.map((r: any) => ({
+          id: r.id,
+          title: r.title,
+          tags: r.tags ?? [],
+          messages: r.messages ?? [],
+          createdAt: r.created_at,
+          updatedAt: r.updated_at,
+        })));
 
         // Build completed session count per student (excludes cancelled)
         const sessionCountMap: Record<string, number> = {};
@@ -477,6 +511,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  // ── Conversations ─────────────────────────────────────────────────────────
+
+  const saveConversation = async (conv: Conversation) => {
+    if (!user) return;
+    const existing = conversations.find((c) => c.id === conv.id);
+    const row = {
+      id: conv.id,
+      coach_id: user.id,
+      title: conv.title,
+      tags: conv.tags,
+      messages: conv.messages,
+      updated_at: new Date().toISOString(),
+    };
+    if (existing) {
+      const { error } = await supabase.from("conversations").update(row).eq("id", conv.id).eq("coach_id", user.id);
+      if (error) { console.error("saveConversation update error:", error); throw error; }
+      setConversations((prev) => prev.map((c) => c.id === conv.id ? { ...conv, updatedAt: row.updated_at } : c));
+    } else {
+      const { data, error } = await supabase.from("conversations").insert({ ...row, created_at: new Date().toISOString() }).select().single();
+      if (error) { console.error("saveConversation insert error:", error); throw error; }
+      setConversations((prev) => [{ ...conv, createdAt: data.created_at, updatedAt: data.updated_at }, ...prev]);
+    }
+  };
+
+  const deleteConversation = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("conversations").delete().eq("id", id).eq("coach_id", user.id);
+    if (error) { console.error("deleteConversation error:", error); throw error; }
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+  };
+
   // ── Drills ───────────────────────────────────────────────────────────────
 
   const addDrill = async (drill: Drill) => {
@@ -556,6 +621,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addDrill,
         updateDrill,
         deleteDrill,
+        conversations,
+        saveConversation,
+        deleteConversation,
       }}
     >
       {children}
