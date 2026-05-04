@@ -141,7 +141,7 @@ export function Progress() {
           </div>
         </div>
 
-        {/* Player progress bars */
+        {/* Player progress bars */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <div className="mb-4">
             <h3 className="text-gray-900">Player Goal Progress</h3>
