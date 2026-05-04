@@ -172,7 +172,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const rawGoals = goalsRes.data ?? [];
         const rawNotes = notesRes.data ?? [];
         const rawDrills = drillsRes.data ?? [];
-        const rawConvs = convsRes.data ?? [];
+        // conversations table may not exist yet — degrade gracefully
+        const rawConvs = convsRes.error ? [] : (convsRes.data ?? []);
+        if (convsRes.error) console.warn("conversations table not ready:", convsRes.error.message);
 
         // Map sessions
         const mappedSessions = rawSessions.map(mapSession);

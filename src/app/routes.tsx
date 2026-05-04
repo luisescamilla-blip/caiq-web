@@ -16,6 +16,7 @@ import { Chat } from "./components/Chat";
 import { CaiChat } from "./components/CaiChat";
 import { Drills } from "./components/Drills";
 import { DrillDetail } from "./components/DrillDetail";
+import { RouteError } from "./components/ErrorBoundary";
 
 export const router = createBrowserRouter([
   // Auth routes
@@ -34,18 +35,19 @@ export const router = createBrowserRouter([
       {
         path: "/",
         Component: Layout,
+        ErrorBoundary: RouteError,
         children: [
-          { index: true, Component: Dashboard },
-          { path: "students", Component: Students },
-          { path: "students/:id", Component: StudentDetail },
-          { path: "sessions", Component: Sessions },
-          { path: "sessions/:id", Component: SessionDetail },
-          { path: "progress", Component: Progress },
-          { path: "settings", Component: Settings },
-          { path: "chat", Component: Chat },
-          { path: "kai", Component: CaiChat },
-          { path: "drills", Component: Drills },
-          { path: "drills/:id", Component: DrillDetail },
+          { index: true, Component: Dashboard, ErrorBoundary: RouteError },
+          { path: "students", Component: Students, ErrorBoundary: RouteError },
+          { path: "students/:id", Component: StudentDetail, ErrorBoundary: RouteError },
+          { path: "sessions", Component: Sessions, ErrorBoundary: RouteError },
+          { path: "sessions/:id", Component: SessionDetail, ErrorBoundary: RouteError },
+          { path: "progress", Component: Progress, ErrorBoundary: RouteError },
+          { path: "settings", Component: Settings, ErrorBoundary: RouteError },
+          { path: "chat", Component: Chat, ErrorBoundary: RouteError },
+          { path: "kai", Component: CaiChat, ErrorBoundary: RouteError },
+          { path: "drills", Component: Drills, ErrorBoundary: RouteError },
+          { path: "drills/:id", Component: DrillDetail, ErrorBoundary: RouteError },
         ],
       },
     ],
