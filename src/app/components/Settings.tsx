@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   User,
@@ -7,10 +7,14 @@ import {
   Save,
   CheckCircle2,
   Loader2,
+  Camera,
 } from "lucide-react";
 
 export function Settings() {
-  const { user, updateProfile } = useAuth();
+  const { user, updateProfile, uploadAvatar } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -32,7 +36,6 @@ export function Settings() {
     weeklyDigest: true,
   });
 
-  // Load real user data on mount / user change
   useEffect(() => {
     if (user) {
       setProfile({
@@ -43,8 +46,25 @@ export function Settings() {
         phone: user.phone ?? "",
         timezone: user.timezone ?? "America/New_York",
       });
+      setAvatarPreview(user.avatarUrl ?? null);
     }
   }, [user]);
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    // Show local preview immediately
+    setAvatarPreview(URL.createObjectURL(file));
+    setAvatarUploading(true);
+    try {
+      await uploadAvatar(file);
+    } catch (err: any) {
+      setError(err?.message ?? "Avatar upload failed");
+      setAvatarPreview(user?.avatarUrl ?? null);
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const avatarInitials = profile.name
     .split(" ")
@@ -93,14 +113,50 @@ export function Settings() {
         <div className="p-5 space-y-4">
           {/* Avatar */}
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white" style={{ fontSize: "20px", fontWeight: 800 }}>
-                {avatarInitials}
-              </span>
+            <div className="relative flex-shrink-0">
+              {avatarPreview ? (
+                <img
+                  src={avatarPreview}
+                  alt="Avatar"
+                  className="w-16 h-16 rounded-2xl object-cover"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                  <span className="text-white" style={{ fontSize: "20px", fontWeight: 800 }}>
+                    {avatarInitials}
+                  </span>
+                </div>
+              )}
+              {/* Upload overlay */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                {avatarUploading
+                  ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  : <Camera className="w-5 h-5 text-white" />}
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
             <div>
               <p className="text-gray-700" style={{ fontSize: "14px", fontWeight: 500 }}>{profile.name || "Coach"}</p>
               <p className="text-gray-400" style={{ fontSize: "12px" }}>{profile.email}</p>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="mt-1 text-indigo-600 hover:text-indigo-700 disabled:opacity-50"
+                style={{ fontSize: "12px" }}
+              >
+                {avatarUploading ? "Uploading..." : "Change photo"}
+              </button>
+              <p className="text-gray-400" style={{ fontSize: "11px" }}>JPG, PNG, WebP up to 5MB</p>
             </div>
           </div>
 

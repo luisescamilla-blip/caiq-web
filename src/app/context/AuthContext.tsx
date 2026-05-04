@@ -10,6 +10,7 @@ interface AuthUser {
   bio?: string;
   phone?: string;
   timezone?: string;
+  avatarUrl?: string;
 }
 
 export interface ProfileUpdate {
@@ -27,6 +28,7 @@ interface AuthContextType {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (updates: ProfileUpdate) => Promise<void>;
+  uploadAvatar: (file: File) => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -41,6 +43,7 @@ function mapUser(supabaseUser: User | null, coachRow?: Record<string, string> | 
     bio: coachRow?.bio ?? supabaseUser.user_metadata?.bio ?? "",
     phone: coachRow?.phone ?? supabaseUser.user_metadata?.phone ?? "",
     timezone: coachRow?.timezone ?? supabaseUser.user_metadata?.timezone ?? "America/New_York",
+    avatarUrl: coachRow?.avatar_url ?? undefined,
   };
 }
 
@@ -50,10 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadUserWithProfile = async (supabaseUser: User | null) => {
     if (!supabaseUser) { setUser(null); return; }
-    // Fetch extended profile from coaches table
     const { data: coachRow } = await supabase
       .from("coaches")
-      .select("name, title, bio, phone, timezone")
+      .select("name, title, bio, phone, timezone, avatar_url")
       .eq("id", supabaseUser.id)
       .single();
     setUser(mapUser(supabaseUser, coachRow));
@@ -94,7 +96,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const updateProfile = async (updates: ProfileUpdate) => {
     if (!user) return;
 
-    // Update coaches table (add columns if missing via migration)
     const { error: dbError } = await supabase
       .from("coaches")
       .update({
@@ -103,24 +104,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         bio: updates.bio,
         phone: updates.phone,
         timezone: updates.timezone,
+        updated_at: new Date().toISOString(),
       })
       .eq("id", user.id);
 
     if (dbError) throw dbError;
 
-    // Also update auth user_metadata so name shows immediately everywhere
     await supabase.auth.updateUser({
       data: { name: updates.name, title: updates.title },
     });
 
-    // Update local state immediately
     setUser((prev) => prev ? { ...prev, ...updates } : prev);
+  };
+
+  const uploadAvatar = async (file: File): Promise<string> => {
+    if (!user) throw new Error("Not authenticated");
+
+    const path = `${user.id}/avatar`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(path);
+    const avatarUrl = `${data.publicUrl}?t=${Date.now()}`; // cache-bust
+
+    // Save url to coaches table
+    await supabase.from("coaches").update({ avatar_url: avatarUrl }).eq("id", user.id);
+
+    setUser((prev) => prev ? { ...prev, avatarUrl } : prev);
+    return avatarUrl;
   };
 
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, signIn, signUp, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, signIn, signUp, signOut, updateProfile, uploadAvatar }}>
       {children}
     </AuthContext.Provider>
   );
