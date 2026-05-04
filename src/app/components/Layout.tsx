@@ -22,9 +22,9 @@ const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: Users, label: "Players", path: "/students" },
   { icon: CalendarDays, label: "Sessions", path: "/sessions" },
+  { icon: Dumbbell, label: "Drills", path: "/drills" },
   { icon: TrendingUp, label: "Progress", path: "/progress" },
   { icon: MessageSquare, label: "Messages", path: "/chat" },
-  { icon: Dumbbell, label: "Drills", path: "/drills" },
 ];
 
 const caiItems = [
