@@ -1,23 +1,30 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "../context/AuthContext";
 import {
   User,
   Bell,
   Shield,
-  Palette,
   Save,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 
 export function Settings() {
+  const { user, updateProfile } = useAuth();
+
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
   const [profile, setProfile] = useState({
-    name: "Luis E",
-    email: "luis@coachaiq.com",
-    title: "Sports Coach",
-    bio: "Certified professional coach with 8+ years of experience helping individuals achieve their personal and professional goals.",
-    phone: "+1 (555) 123-4567",
+    name: "",
+    email: "",
+    title: "",
+    bio: "",
+    phone: "",
     timezone: "America/New_York",
   });
+
   const [notifications, setNotifications] = useState({
     sessionReminders: true,
     newStudents: true,
@@ -25,19 +32,52 @@ export function Settings() {
     weeklyDigest: true,
   });
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+  // Load real user data on mount / user change
+  useEffect(() => {
+    if (user) {
+      setProfile({
+        name: user.name ?? "",
+        email: user.email ?? "",
+        title: user.title ?? "",
+        bio: user.bio ?? "",
+        phone: user.phone ?? "",
+        timezone: user.timezone ?? "America/New_York",
+      });
+    }
+  }, [user]);
+
+  const avatarInitials = profile.name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || "C";
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      await updateProfile({
+        name: profile.name,
+        title: profile.title,
+        bio: profile.bio,
+        phone: profile.phone,
+        timezone: profile.timezone,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to save. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="p-4 lg:p-6 space-y-6 max-w-2xl">
       <div>
         <h1 className="text-gray-900">Settings</h1>
-        <p
-          className="text-gray-500 mt-0.5"
-          style={{ fontSize: "14px" }}
-        >
+        <p className="text-gray-500 mt-0.5" style={{ fontSize: "14px" }}>
           Manage your account and preferences.
         </p>
       </div>
@@ -54,106 +94,56 @@ export function Settings() {
           {/* Avatar */}
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <span
-                className="text-white"
-                style={{ fontSize: "20px", fontWeight: 800 }}
-              >
-                LE
+              <span className="text-white" style={{ fontSize: "20px", fontWeight: 800 }}>
+                {avatarInitials}
               </span>
             </div>
             <div>
-              <button
-                className="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 rounded-lg transition-colors"
-                style={{ fontSize: "13px" }}
-              >
-                Change Photo
-              </button>
-              <p
-                className="text-gray-400 mt-1"
-                style={{ fontSize: "11px" }}
-              >
-                JPG, PNG up to 5MB
-              </p>
+              <p className="text-gray-700" style={{ fontSize: "14px", fontWeight: 500 }}>{profile.name || "Coach"}</p>
+              <p className="text-gray-400" style={{ fontSize: "12px" }}>{profile.email}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label
-                className="block text-gray-700 mb-1"
-                style={{ fontSize: "13px" }}
-              >
-                Full Name
-              </label>
+              <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Full Name</label>
               <input
                 type="text"
                 value={profile.name}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    name: e.target.value,
-                  })
-                }
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
                 style={{ fontSize: "14px" }}
               />
             </div>
             <div>
-              <label
-                className="block text-gray-700 mb-1"
-                style={{ fontSize: "13px" }}
-              >
-                Title / Specialty
-              </label>
+              <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Title / Specialty</label>
               <input
                 type="text"
                 value={profile.title}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    title: e.target.value,
-                  })
-                }
+                onChange={(e) => setProfile({ ...profile, title: e.target.value })}
+                placeholder="e.g. Sports Coach, Career Coach"
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
                 style={{ fontSize: "14px" }}
               />
             </div>
             <div>
-              <label
-                className="block text-gray-700 mb-1"
-                style={{ fontSize: "13px" }}
-              >
-                Email
-              </label>
+              <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Email</label>
               <input
                 type="email"
                 value={profile.email}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    email: e.target.value,
-                  })
-                }
-                className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                disabled
+                className="w-full px-3 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-gray-400 cursor-not-allowed"
                 style={{ fontSize: "14px" }}
               />
+              <p className="text-gray-400 mt-1" style={{ fontSize: "11px" }}>Email can't be changed here</p>
             </div>
             <div>
-              <label
-                className="block text-gray-700 mb-1"
-                style={{ fontSize: "13px" }}
-              >
-                Phone
-              </label>
+              <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Phone</label>
               <input
                 type="tel"
                 value={profile.phone}
-                onChange={(e) =>
-                  setProfile({
-                    ...profile,
-                    phone: e.target.value,
-                  })
-                }
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                placeholder="+1 (555) 000-0000"
                 className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
                 style={{ fontSize: "14px" }}
               />
@@ -161,17 +151,11 @@ export function Settings() {
           </div>
 
           <div>
-            <label
-              className="block text-gray-700 mb-1"
-              style={{ fontSize: "13px" }}
-            >
-              Bio
-            </label>
+            <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Bio</label>
             <textarea
               value={profile.bio}
-              onChange={(e) =>
-                setProfile({ ...profile, bio: e.target.value })
-              }
+              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+              placeholder="Tell your players a bit about yourself..."
               rows={3}
               className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all resize-none"
               style={{ fontSize: "14px" }}
@@ -179,41 +163,19 @@ export function Settings() {
           </div>
 
           <div>
-            <label
-              className="block text-gray-700 mb-1"
-              style={{ fontSize: "13px" }}
-            >
-              Timezone
-            </label>
+            <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Timezone</label>
             <select
               value={profile.timezone}
-              onChange={(e) =>
-                setProfile({
-                  ...profile,
-                  timezone: e.target.value,
-                })
-              }
+              onChange={(e) => setProfile({ ...profile, timezone: e.target.value })}
               className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 transition-all appearance-none cursor-pointer"
               style={{ fontSize: "14px" }}
             >
-              <option value="America/New_York">
-                Eastern Time (ET)
-              </option>
-              <option value="America/Chicago">
-                Central Time (CT)
-              </option>
-              <option value="America/Denver">
-                Mountain Time (MT)
-              </option>
-              <option value="America/Los_Angeles">
-                Pacific Time (PT)
-              </option>
-              <option value="Europe/London">
-                London (GMT)
-              </option>
-              <option value="Europe/Paris">
-                Central European (CET)
-              </option>
+              <option value="America/New_York">Eastern Time (ET)</option>
+              <option value="America/Chicago">Central Time (CT)</option>
+              <option value="America/Denver">Mountain Time (MT)</option>
+              <option value="America/Los_Angeles">Pacific Time (PT)</option>
+              <option value="Europe/London">London (GMT)</option>
+              <option value="Europe/Paris">Central European (CET)</option>
             </select>
           </div>
         </div>
@@ -229,78 +191,23 @@ export function Settings() {
         </div>
         <div className="p-5 space-y-4">
           {[
-            {
-              key: "sessionReminders",
-              label: "Session Reminders",
-              desc: "Get notified 1 hour before each session",
-            },
-            {
-              key: "newStudents",
-              label: "New Player Alerts",
-              desc: "Notify when a new player is added",
-            },
-            {
-              key: "goalUpdates",
-              label: "Goal Updates",
-              desc: "Notify when players update their goal progress",
-            },
-            {
-              key: "weeklyDigest",
-              label: "Weekly Digest",
-              desc: "Summary of sessions and progress each Monday",
-            },
+            { key: "sessionReminders", label: "Session Reminders", desc: "Get notified 1 hour before each session" },
+            { key: "newStudents", label: "New Player Alerts", desc: "Notify when a new player is added" },
+            { key: "goalUpdates", label: "Goal Updates", desc: "Notify when players update their goal progress" },
+            { key: "weeklyDigest", label: "Weekly Digest", desc: "Summary of sessions and progress each Monday" },
           ].map((item) => (
-            <div
-              key={item.key}
-              className="flex items-center justify-between"
-            >
+            <div key={item.key} className="flex items-center justify-between">
               <div>
-                <p
-                  className="text-gray-800"
-                  style={{ fontSize: "14px", fontWeight: 500 }}
-                >
-                  {item.label}
-                </p>
-                <p
-                  className="text-gray-400"
-                  style={{ fontSize: "12px" }}
-                >
-                  {item.desc}
-                </p>
+                <p className="text-gray-800" style={{ fontSize: "14px", fontWeight: 500 }}>{item.label}</p>
+                <p className="text-gray-400" style={{ fontSize: "12px" }}>{item.desc}</p>
               </div>
               <button
-                onClick={() =>
-                  setNotifications({
-                    ...notifications,
-                    [item.key]:
-                      !notifications[
-                        item.key as keyof typeof notifications
-                      ],
-                  })
-                }
-                className={`w-11 h-6 rounded-full transition-colors relative ${
-                  notifications[
-                    item.key as keyof typeof notifications
-                  ]
-                    ? "bg-indigo-600"
-                    : "bg-gray-200"
-                }`}
+                onClick={() => setNotifications({ ...notifications, [item.key]: !notifications[item.key as keyof typeof notifications] })}
+                className={`w-11 h-6 rounded-full transition-colors relative ${notifications[item.key as keyof typeof notifications] ? "bg-indigo-600" : "bg-gray-200"}`}
               >
                 <span
-                  className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
-                    notifications[
-                      item.key as keyof typeof notifications
-                    ]
-                      ? "left-5.5"
-                      : "left-0.5"
-                  }`}
-                  style={{
-                    left: notifications[
-                      item.key as keyof typeof notifications
-                    ]
-                      ? "22px"
-                      : "2px",
-                  }}
+                  className="absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all"
+                  style={{ left: notifications[item.key as keyof typeof notifications] ? "22px" : "2px" }}
                 />
               </button>
             </div>
@@ -317,64 +224,35 @@ export function Settings() {
           <h3 className="text-gray-900">Security</h3>
         </div>
         <div className="p-5 space-y-3">
-          <button
-            className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
-            style={{ fontSize: "14px" }}
-          >
-            <p
-              className="text-gray-800"
-              style={{ fontWeight: 500 }}
-            >
-              Change Password
-            </p>
-            <p
-              className="text-gray-400"
-              style={{ fontSize: "12px" }}
-            >
-              Last changed 3 months ago
-            </p>
+          <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors" style={{ fontSize: "14px" }}>
+            <p className="text-gray-800" style={{ fontWeight: 500 }}>Change Password</p>
+            <p className="text-gray-400" style={{ fontSize: "12px" }}>Update via email reset link</p>
           </button>
-          <button
-            className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
-            style={{ fontSize: "14px" }}
-          >
-            <p
-              className="text-gray-800"
-              style={{ fontWeight: 500 }}
-            >
-              Two-Factor Authentication
-            </p>
-            <p
-              className="text-gray-400"
-              style={{ fontSize: "12px" }}
-            >
-              Add an extra layer of security
-            </p>
+          <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors" style={{ fontSize: "14px" }}>
+            <p className="text-gray-800" style={{ fontWeight: 500 }}>Two-Factor Authentication</p>
+            <p className="text-gray-400" style={{ fontSize: "12px" }}>Add an extra layer of security</p>
           </button>
         </div>
       </div>
+
+      {/* Error */}
+      {error && (
+        <p className="text-red-500 text-sm">{error}</p>
+      )}
 
       {/* Save button */}
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2.5 rounded-xl transition-colors shadow-sm shadow-indigo-200"
+          disabled={saving}
+          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white px-6 py-2.5 rounded-xl transition-colors shadow-sm shadow-indigo-200"
           style={{ fontSize: "14px" }}
         >
-          {saved ? (
-            <CheckCircle2 className="w-4 h-4" />
-          ) : (
-            <Save className="w-4 h-4" />
-          )}
-          {saved ? "Saved!" : "Save Changes"}
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <CheckCircle2 className="w-4 h-4" /> : <Save className="w-4 h-4" />}
+          {saving ? "Saving..." : saved ? "Saved!" : "Save Changes"}
         </button>
         {saved && (
-          <p
-            className="text-emerald-600"
-            style={{ fontSize: "13px" }}
-          >
-            Your changes have been saved.
-          </p>
+          <p className="text-emerald-600" style={{ fontSize: "13px" }}>Your profile has been updated.</p>
         )}
       </div>
     </div>
