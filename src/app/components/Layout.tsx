@@ -20,7 +20,7 @@ import {
 
 const navItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-  { icon: Users, label: "Students", path: "/students" },
+  { icon: Users, label: "Players", path: "/students" },
   { icon: CalendarDays, label: "Sessions", path: "/sessions" },
   { icon: TrendingUp, label: "Progress", path: "/progress" },
   { icon: MessageSquare, label: "Messages", path: "/chat" },
@@ -202,7 +202,7 @@ export function Layout() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
-              placeholder="Search students, sessions..."
+              placeholder="Search players, sessions..."
               className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-600 placeholder-gray-400 outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
               style={{ fontSize: "14px" }}
             />

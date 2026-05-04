@@ -27,7 +27,7 @@ const TESTIMONIALS = [
 
 const STATS = [
   { value: "2,400+", label: "Coaches" },
-  { value: "18k+", label: "Students" },
+  { value: "18k+", label: "Players" },
   { value: "94%", label: "Satisfaction" },
 ];
 
@@ -66,7 +66,7 @@ export function AuthLayout() {
               Your new assistant.<br />So you can just... &nbsp;  coach.
             </h1>
             <p className="text-indigo-200 mt-4" style={{ fontSize: "16px", lineHeight: 1.7, maxWidth: "400px" }}>
-              Manage students, track goals, schedule sessions, and measure progress — all done with the help of AI.
+              Manage players, track goals, schedule sessions, and measure progress — all done with the help of AI.
             </p>
 
             {/* Stats */}

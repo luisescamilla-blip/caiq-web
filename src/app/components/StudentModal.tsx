@@ -110,10 +110,10 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
             </div>
             <div>
               <h2 className="text-gray-900" style={{ fontSize: "16px" }}>
-                {existing ? "Edit Student" : "Add New Student"}
+                {existing ? "Edit Player" : "Add New Player"}
               </h2>
               <p className="text-gray-400" style={{ fontSize: "12px" }}>
-                {existing ? "Update student information" : "Fill in the details below"}
+                {existing ? "Update player information" : "Fill in the details below"}
               </p>
             </div>
           </div>
@@ -231,7 +231,7 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
               className="flex-1 px-4 py-2.5 text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-sm shadow-indigo-200"
               style={{ fontSize: "14px" }}
             >
-              {existing ? "Save Changes" : "Add Student"}
+              {existing ? "Save Changes" : "Add Player"}
             </button>
           </div>
         </form>

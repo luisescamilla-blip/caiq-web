@@ -17,7 +17,7 @@ const GROQ_MODEL = "llama-3.3-70b-versatile";
 
 const SUGGESTED_PROMPTS = [
   "Summarize my upcoming sessions this week",
-  "Which students need the most attention?",
+  "Which players need the most attention?",
   "Who has the most sessions this month?",
   "What goals are behind schedule?",
 ];
@@ -36,15 +36,15 @@ const TOOLS = [
     type: "function",
     function: {
       name: "create_student",
-      description: "Create a new student/athlete for the coach",
+      description: "Create a new player/athlete for the coach",
       parameters: {
         type: "object",
         properties: {
-          name: { type: "string", description: "Full name of the student" },
+          name: { type: "string", description: "Full name of the player" },
           email: { type: "string", description: "Email address (optional)" },
           phone: { type: "string", description: "Phone number (optional)" },
           program: { type: "string", description: "Program or sport only if explicitly mentioned by the coach. Leave empty if not specified." },
-          status: { type: "string", enum: ["active", "inactive", "on-hold"], description: "Student status, default active" },
+          status: { type: "string", enum: ["active", "inactive", "on-hold"], description: "Player status, default active" },
         },
         required: ["name"],
       },
@@ -54,11 +54,11 @@ const TOOLS = [
     type: "function",
     function: {
       name: "create_session",
-      description: "Schedule a new session for a student",
+      description: "Schedule a new session for a player",
       parameters: {
         type: "object",
         properties: {
-          student_name: { type: "string", description: "Name of the student (will be matched)" },
+          student_name: { type: "string", description: "Name of the player (will be matched)" },
           topic: { type: "string", description: "Topic or focus of the session" },
           date: { type: "string", description: "Date in YYYY-MM-DD format" },
           time: { type: "string", description: "Time in HH:MM format, e.g. 10:00" },
@@ -73,11 +73,11 @@ const TOOLS = [
     type: "function",
     function: {
       name: "add_note",
-      description: "Add a note for a student",
+      description: "Add a note for a player",
       parameters: {
         type: "object",
         properties: {
-          student_name: { type: "string", description: "Name of the student" },
+          student_name: { type: "string", description: "Name of the player" },
           content: { type: "string", description: "Note content" },
         },
         required: ["student_name", "content"],
@@ -88,11 +88,11 @@ const TOOLS = [
     type: "function",
     function: {
       name: "add_goal",
-      description: "Add a goal for a student",
+      description: "Add a goal for a player",
       parameters: {
         type: "object",
         properties: {
-          student_name: { type: "string", description: "Name of the student" },
+          student_name: { type: "string", description: "Name of the player" },
           title: { type: "string", description: "Goal title/description" },
           due_date: { type: "string", description: "Due date in YYYY-MM-DD format (optional)" },
           progress: { type: "number", description: "Initial progress 0-100, default 0" },
@@ -104,12 +104,44 @@ const TOOLS = [
   {
     type: "function",
     function: {
-      name: "delete_student",
-      description: "Delete a student permanently",
+      name: "update_goal",
+      description: "Update a player's goal — change progress, status, or title",
       parameters: {
         type: "object",
         properties: {
-          student_name: { type: "string", description: "Name of the student to delete" },
+          student_name: { type: "string", description: "Name of the player" },
+          goal_title: { type: "string", description: "Partial or full title of the goal to update" },
+          progress: { type: "number", description: "New progress value 0-100 (optional)" },
+          status: { type: "string", enum: ["not-started", "in-progress", "completed"], description: "New status (optional)" },
+        },
+        required: ["student_name", "goal_title"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "cancel_session",
+      description: "Cancel an upcoming session for a player",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: { type: "string", description: "Name of the player" },
+          date: { type: "string", description: "Date of the session to cancel in YYYY-MM-DD format (optional, cancels next upcoming if omitted)" },
+        },
+        required: ["student_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "delete_student",
+      description: "Delete a player permanently",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: { type: "string", description: "Name of the player to delete" },
         },
         required: ["student_name"],
       },
@@ -119,13 +151,13 @@ const TOOLS = [
 
 export function CaiChat() {
   const { user } = useAuth();
-  const { students, sessions, addStudent, addSession, addNote, addGoal, deleteStudent } = useApp();
+  const { students, sessions, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent } = useApp();
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Cai. I can answer questions about your students and sessions, and I can also take actions — like adding a student, scheduling a session, or logging a note. What do you need?`,
+      content: `Hey Coach${user?.name ? " " + user.name.split(" ")[0] : ""}! ⚡ I'm Cai. I can answer questions about your players and sessions, and I can also take actions — like adding a player, scheduling a session, or logging a note. What do you need?`,
       timestamp: new Date().toISOString(),
     },
   ]);
@@ -176,29 +208,57 @@ export function CaiChat() {
   };
 
   const buildSystemPrompt = () => {
+    const allStudents = students;
     const activeStudents = students.filter((s) => s.status === "active");
-    const upcomingSessions = sessions.filter((s) => s.status === "upcoming").slice(0, 10);
+    const onHoldStudents = students.filter((s) => s.status === "on-hold");
+    const inactiveStudents = students.filter((s) => s.status === "inactive");
 
-    const studentSummary = activeStudents.map((s) => {
+    const upcomingSessions = sessions
+      .filter((s) => s.status === "upcoming")
+      .sort((a, b) => new Date(a.date + "T" + a.time).getTime() - new Date(b.date + "T" + b.time).getTime());
+
+    const recentCompleted = sessions
+      .filter((s) => s.status === "completed")
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .slice(0, 20);
+
+    const buildStudentBlock = (s: typeof students[0]) => {
       const avgProgress = s.goals.length > 0
         ? Math.round(s.goals.reduce((a, g) => a + g.progress, 0) / s.goals.length) : 0;
-      return `- ${s.name} (ID: ${s.id}, Program: ${s.program}, Sessions: ${s.totalSessions}, Goal progress: ${avgProgress}%)`;
-    }).join("\n");
+      const goalsText = s.goals.length > 0
+        ? s.goals.map((g) => `    • [${g.status}] ${g.title} — ${g.progress}% ${g.dueDate ? `(due ${g.dueDate})` : ""}`).join("\n")
+        : "    (no goals)";
+      const notesText = s.notes.length > 0
+        ? s.notes.slice(0, 3).map((n) => `    • [${n.date}] ${n.content}`).join("\n")
+        : "    (no notes)";
+      const nextSess = sessions
+        .filter((sess) => sess.studentId === s.id && sess.status === "upcoming")
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+      return [
+        `- ${s.name} | Program: ${s.program || "(none)"} | Sessions: ${s.totalSessions} | Avg goal progress: ${avgProgress}%${nextSess ? ` | Next session: ${nextSess.date} ${nextSess.time} (${nextSess.topic})` : ""}`,
+        `  Goals:\n${goalsText}`,
+        `  Recent notes:\n${notesText}`,
+      ].join("\n");
+    };
 
-    const sessionSummary = upcomingSessions.map((s) => {
-      const student = students.find((st) => st.id === s.studentId);
-      return `- ${s.date} ${s.time}: ${student?.name ?? "Unknown"} — ${s.topic} (${s.duration}min)`;
-    }).join("\n");
+    const sessionSummary = (list: typeof sessions) =>
+      list.map((s) => {
+        const student = students.find((st) => st.id === s.studentId);
+        return `- ${s.date} ${s.time}: ${student?.name ?? "Unknown"} — ${s.topic} (${s.duration}min)${s.notes ? ` | Notes: ${s.notes}` : ""}`;
+      }).join("\n");
 
-    return `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage students, sessions, goals, and notes.
+    return `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage players, sessions, goals, and notes.
 
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
-ACTIVE STUDENTS (${activeStudents.length}):
-${studentSummary || "No active students yet."}
+== ACTIVE PLAYERS (${activeStudents.length}) ==
+${activeStudents.length > 0 ? activeStudents.map(buildStudentBlock).join("\n\n") : "No active players yet."}
 
-UPCOMING SESSIONS (${upcomingSessions.length}):
-${sessionSummary || "No upcoming sessions."}
+${onHoldStudents.length > 0 ? `== ON-HOLD PLAYERS (${onHoldStudents.length}) ==\n${onHoldStudents.map(buildStudentBlock).join("\n\n")}\n\n` : ""}${inactiveStudents.length > 0 ? `== INACTIVE / ALUMNI (${inactiveStudents.length}) ==\n${inactiveStudents.map(buildStudentBlock).join("\n\n")}\n\n` : ""}== UPCOMING SESSIONS (${upcomingSessions.length}) ==
+${upcomingSessions.length > 0 ? sessionSummary(upcomingSessions) : "No upcoming sessions."}
+
+== RECENTLY COMPLETED SESSIONS (last ${recentCompleted.length}) ==
+${recentCompleted.length > 0 ? sessionSummary(recentCompleted) : "No completed sessions yet."}
 
 You can both answer questions AND take real actions using the available tools. When a coach asks you to create/add/schedule something, use the appropriate tool to do it — don't just describe what you would do. Be concise and confirm what you did. Never mention UUIDs or internal IDs in your responses.`;
   };
@@ -222,7 +282,7 @@ You can both answer questions AND take real actions using the available tools. W
         notes: [],
       };
       await addStudent(newStudent);
-      return { type: "create_student", summary: `✅ Added student: **${args.name}**` };
+      return { type: "create_student", summary: `✅ Added player: **${args.name}**` };
     }
 
     if (name === "create_session") {
@@ -257,6 +317,48 @@ You can both answer questions AND take real actions using the available tools. W
       };
       await addNote(student.id, note);
       return { type: "add_note", summary: `✅ Note added for **${student.name}**` };
+    }
+
+    if (name === "update_goal") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.student_name.toLowerCase())
+      );
+      if (!student) return { type: "update_goal", summary: `❌ Could not find student matching "${args.student_name}"` };
+
+      const goal = student.goals.find((g) =>
+        g.title.toLowerCase().includes(args.goal_title.toLowerCase())
+      );
+      if (!goal) return { type: "update_goal", summary: `❌ Could not find a goal matching "${args.goal_title}" for ${student.name}` };
+
+      const updatedGoal = {
+        ...goal,
+        ...(args.progress !== undefined ? { progress: args.progress } : {}),
+        ...(args.status ? { status: args.status } : {}),
+        // auto-set progress to 100 if marked completed
+        ...(args.status === "completed" && args.progress === undefined ? { progress: 100 } : {}),
+      };
+      await updateGoal(student.id, updatedGoal);
+      return { type: "update_goal", summary: `✅ Updated goal for **${student.name}**: "${goal.title}" → ${updatedGoal.status} (${updatedGoal.progress}%)` };
+    }
+
+    if (name === "cancel_session") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.student_name.toLowerCase())
+      );
+      if (!student) return { type: "cancel_session", summary: `❌ Could not find student matching "${args.student_name}"` };
+
+      const upcoming = sessions
+        .filter((s) => s.studentId === student.id && s.status === "upcoming")
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      const target = args.date
+        ? upcoming.find((s) => s.date === args.date)
+        : upcoming[0];
+
+      if (!target) return { type: "cancel_session", summary: `❌ No upcoming session found for ${student.name}${args.date ? ` on ${args.date}` : ""}` };
+
+      await updateSession({ ...target, status: "cancelled" });
+      return { type: "cancel_session", summary: `✅ Cancelled session for **${student.name}**: ${target.topic} on ${target.date}` };
     }
 
     if (name === "delete_student") {
@@ -503,7 +605,7 @@ You can both answer questions AND take real actions using the available tools. W
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Ask Cai anything, or say 'Add student John Smith'..."
+              placeholder="Ask Cai anything, or say 'Add player John Smith'..."
               rows={1}
               disabled={loading}
               className="w-full px-4 pt-3 pb-1 bg-transparent text-gray-800 placeholder-gray-400 outline-none resize-none disabled:opacity-50"

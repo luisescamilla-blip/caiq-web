@@ -8,9 +8,22 @@ import {
   Goal,
 } from "../data/mockData";
 
+export interface Drill {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  tags: string[];
+  difficulty: "beginner" | "intermediate" | "advanced";
+  duration: number;
+  youtubeUrl?: string;
+  createdAt: string;
+}
+
 interface AppContextType {
   students: Student[];
   sessions: Session[];
+  drills: Drill[];
   loading: boolean;
   addStudent: (student: Student) => Promise<void>;
   updateStudent: (student: Student) => Promise<void>;
@@ -24,6 +37,9 @@ interface AppContextType {
   updateGoal: (studentId: string, goal: Goal) => Promise<void>;
   addGoal: (studentId: string, goal: Goal) => Promise<void>;
   deleteGoal: (studentId: string, goalId: string) => Promise<void>;
+  addDrill: (drill: Drill) => Promise<void>;
+  updateDrill: (drill: Drill) => Promise<void>;
+  deleteDrill: (id: string) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -70,6 +86,21 @@ function mapNote(row: any): Note {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapDrill(row: any): Drill {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description ?? "",
+    category: row.category ?? "Other",
+    tags: row.tags ?? [],
+    difficulty: row.difficulty ?? "beginner",
+    duration: row.duration ?? 15,
+    youtubeUrl: row.youtube_url ?? undefined,
+    createdAt: row.created_at?.slice(0, 10) ?? "",
+  };
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function mapSession(row: any): Session {
   return {
     id: row.id,
@@ -89,6 +120,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [drills, setDrills] = useState<Drill[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ── Load data when user is authenticated ──────────────────────────────────
@@ -104,22 +136,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
       try {
         const coachId = user.id;
 
-        // Fetch students, sessions, goals, notes in parallel
-        const [studentsRes, sessionsRes, goalsRes, notesRes] = await Promise.all([
+        // Fetch students, sessions, goals, notes, drills in parallel
+        const [studentsRes, sessionsRes, goalsRes, notesRes, drillsRes] = await Promise.all([
           supabase.from("students").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
           supabase.from("sessions").select("*").eq("coach_id", coachId).order("date", { ascending: false }),
           supabase.from("goals").select("*").eq("coach_id", coachId).eq("parent_type", "student"),
           supabase.from("notes").select("*").eq("coach_id", coachId).eq("parent_type", "student").order("created_at", { ascending: false }),
+          supabase.from("drills").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
         ]);
 
         const rawStudents = studentsRes.data ?? [];
         const rawSessions = sessionsRes.data ?? [];
         const rawGoals = goalsRes.data ?? [];
         const rawNotes = notesRes.data ?? [];
+        const rawDrills = drillsRes.data ?? [];
 
         // Map sessions
         const mappedSessions = rawSessions.map(mapSession);
         setSessions(mappedSessions);
+
+        // Map drills
+        setDrills(rawDrills.map(mapDrill));
 
         // Build session count per student
         const sessionCountMap: Record<string, number> = {};
@@ -414,11 +451,69 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  // ── Drills ───────────────────────────────────────────────────────────────
+
+  const addDrill = async (drill: Drill) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("drills")
+      .insert({
+        id: drill.id,
+        coach_id: user.id,
+        name: drill.name,
+        description: drill.description,
+        category: drill.category,
+        tags: drill.tags,
+        difficulty: drill.difficulty,
+        duration: drill.duration,
+        youtube_url: drill.youtubeUrl ?? null,
+      })
+      .select()
+      .single();
+
+    if (error) { console.error("addDrill error:", error); throw error; }
+    setDrills((prev) => [mapDrill(data), ...prev]);
+  };
+
+  const updateDrill = async (drill: Drill) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("drills")
+      .update({
+        name: drill.name,
+        description: drill.description,
+        category: drill.category,
+        tags: drill.tags,
+        difficulty: drill.difficulty,
+        duration: drill.duration,
+        youtube_url: drill.youtubeUrl ?? null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", drill.id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("updateDrill error:", error); throw error; }
+    setDrills((prev) => prev.map((d) => (d.id === drill.id ? drill : d)));
+  };
+
+  const deleteDrill = async (id: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from("drills")
+      .delete()
+      .eq("id", id)
+      .eq("coach_id", user.id);
+
+    if (error) { console.error("deleteDrill error:", error); throw error; }
+    setDrills((prev) => prev.filter((d) => d.id !== id));
+  };
+
   return (
     <AppContext.Provider
       value={{
         students,
         sessions,
+        drills,
         loading,
         addStudent,
         updateStudent,
@@ -432,6 +527,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addGoal,
         updateGoal,
         deleteGoal,
+        addDrill,
+        updateDrill,
+        deleteDrill,
       }}
     >
       {children}

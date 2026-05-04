@@ -236,13 +236,13 @@ export function Settings() {
             },
             {
               key: "newStudents",
-              label: "New Student Alerts",
-              desc: "Notify when a new student is added",
+              label: "New Player Alerts",
+              desc: "Notify when a new player is added",
             },
             {
               key: "goalUpdates",
               label: "Goal Updates",
-              desc: "Notify when students update their goal progress",
+              desc: "Notify when players update their goal progress",
             },
             {
               key: "weeklyDigest",

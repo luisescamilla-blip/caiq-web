@@ -92,7 +92,7 @@ export function Dashboard() {
   const hasData = students.length > 0 || sessions.length > 0;
 
   const statsCards = [
-    { label: "Active Students", value: activeStudents, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", sub: `${students.length} total` },
+    { label: "Active Players", value: activeStudents, icon: Users, color: "text-indigo-600", bg: "bg-indigo-50", sub: `${students.length} total` },
     { label: "Upcoming Sessions", value: upcomingSessions.length, icon: CalendarDays, color: "text-blue-600", bg: "bg-blue-50", sub: "Scheduled" },
     { label: "Sessions This Month", value: completedThisMonth, icon: Activity, color: "text-purple-600", bg: "bg-purple-50", sub: MONTHS[now.getMonth()] },
     { label: "Goals Completed", value: totalGoals > 0 ? `${completedGoals}/${totalGoals}` : "—", icon: Target, color: "text-emerald-600", bg: "bg-emerald-50", sub: totalGoals > 0 ? `${Math.round((completedGoals / totalGoals) * 100)}% rate` : "No goals yet" },
@@ -104,7 +104,7 @@ export function Dashboard() {
       <div>
         <h1 className="text-gray-900">{greeting}, {firstName}!</h1>
         <p className="text-gray-500 mt-0.5" style={{ fontSize: "14px" }}>
-          {hasData ? "Here's what's happening with your students today." : "Welcome to Coach AIQ. Add your first student to get started."}
+          {hasData ? "Here's what's happening with your players today." : "Welcome to Coach AIQ. Add your first player to get started."}
         </p>
       </div>
 
@@ -165,7 +165,7 @@ export function Dashboard() {
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <div className="mb-4">
             <h3 className="text-gray-900">Programs</h3>
-            <p className="text-gray-400" style={{ fontSize: "12px" }}>Students per program</p>
+            <p className="text-gray-400" style={{ fontSize: "12px" }}>Players per program</p>
           </div>
           {programData.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-44 text-center">
@@ -225,23 +225,23 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* Student Spotlight */}
+        {/* Player Spotlight */
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h3 className="text-gray-900">Student Spotlight</h3>
-              <p className="text-gray-400" style={{ fontSize: "12px" }}>Most active students</p>
+              <h3 className="text-gray-900">Player Spotlight</h3>
+              <p className="text-gray-400" style={{ fontSize: "12px" }}>Most active players</p>
             </div>
             <button onClick={() => navigate("/students")} className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700 transition-colors" style={{ fontSize: "13px", fontWeight: 500 }}>
-              All students <ArrowRight className="w-3.5 h-3.5" />
+              All players <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           {students.filter((s) => s.status === "active").length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <Users className="w-8 h-8 text-gray-200 mb-2" />
-              <p className="text-gray-400" style={{ fontSize: "13px" }}>No active students yet</p>
-              <button onClick={() => navigate("/students")} className="mt-2 text-indigo-600 hover:underline" style={{ fontSize: "12px" }}>Add a student →</button>
+              <p className="text-gray-400" style={{ fontSize: "13px" }}>No active players yet</p>
+              <button onClick={() => navigate("/students")} className="mt-2 text-indigo-600 hover:underline" style={{ fontSize: "12px" }}>Add a player →</button>
             </div>
           ) : (
             <>

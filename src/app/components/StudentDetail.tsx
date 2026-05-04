@@ -76,8 +76,8 @@ export function StudentDetail() {
   if (!student) {
     return (
       <div className="p-6 text-center">
-        <p className="text-gray-500">Student not found.</p>
-        <button onClick={() => navigate("/students")} className="text-indigo-600 mt-2">Back to students</button>
+        <p className="text-gray-500">Player not found.</p>
+        <button onClick={() => navigate("/students")} className="text-indigo-600 mt-2">Back to players</button>
       </div>
     );
   }
@@ -151,7 +151,7 @@ export function StudentDetail() {
         style={{ fontSize: "14px" }}
       >
         <ArrowLeft className="w-4 h-4" />
-        Back to Students
+        Back to Players
       </button>
 
       {/* Profile header */}

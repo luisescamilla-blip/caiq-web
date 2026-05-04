@@ -93,7 +93,7 @@ export function Students() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-gray-900">Students</h1>
+          <h1 className="text-gray-900">Players</h1>
           <p className="text-gray-500 mt-0.5" style={{ fontSize: "14px" }}>
             {students.length} total · {students.filter((s) => s.status === "active").length} active
           </p>
@@ -104,7 +104,7 @@ export function Students() {
           style={{ fontSize: "14px" }}
         >
           <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Add Student</span>
+          <span className="hidden sm:inline">Add Player</span>
         </button>
       </div>
 
@@ -114,7 +114,7 @@ export function Students() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <input
             type="text"
-            placeholder="Search students..."
+            placeholder="Search players..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
@@ -150,7 +150,7 @@ export function Students() {
       {/* Student count */}
       <div className="flex items-center justify-between">
         <p className="text-gray-500" style={{ fontSize: "13px" }}>
-          Showing {filtered.length} of {students.length} students
+          Showing {filtered.length} of {students.length} players
         </p>
         <div className="flex gap-1">
           <button
@@ -278,7 +278,7 @@ export function Students() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-gray-100">
-                <th className="text-left px-5 py-3 text-gray-400 uppercase tracking-wider" style={{ fontSize: "11px", fontWeight: 600 }}>Student</th>
+                <th className="text-left px-5 py-3 text-gray-400 uppercase tracking-wider" style={{ fontSize: "11px", fontWeight: 600 }}>Player</th>
                 <th className="text-left px-5 py-3 text-gray-400 uppercase tracking-wider hidden md:table-cell" style={{ fontSize: "11px", fontWeight: 600 }}>Sessions</th>
                 <th className="text-left px-5 py-3 text-gray-400 uppercase tracking-wider hidden sm:table-cell" style={{ fontSize: "11px", fontWeight: 600 }}>Status</th>
                 <th className="text-left px-5 py-3 text-gray-400 uppercase tracking-wider hidden lg:table-cell" style={{ fontSize: "11px", fontWeight: 600 }}>Tags</th>
@@ -359,7 +359,7 @@ export function Students() {
           <div className="w-16 h-16 bg-gray-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Users className="w-8 h-8 text-gray-300" />
           </div>
-          <p className="text-gray-500" style={{ fontSize: "15px", fontWeight: 500 }}>No students found</p>
+          <p className="text-gray-500" style={{ fontSize: "15px", fontWeight: 500 }}>No players found</p>
           <p className="text-gray-400 mt-1" style={{ fontSize: "13px" }}>Try adjusting your search or filters</p>
         </div>
       )}
@@ -380,9 +380,9 @@ export function Students() {
             <div className="w-12 h-12 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Trash2 className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-gray-900 text-center mb-2">Delete Student?</h3>
+            <h3 className="text-gray-900 text-center mb-2">Delete Player?</h3>
             <p className="text-gray-500 text-center mb-5" style={{ fontSize: "14px" }}>
-              This will permanently remove the student and all their session history. This action cannot be undone.
+              This will permanently remove the player and all their session history. This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button

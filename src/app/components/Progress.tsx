@@ -79,7 +79,7 @@ export function Progress() {
       <div>
         <h1 className="text-gray-900">Progress Overview</h1>
         <p className="text-gray-500 mt-0.5" style={{ fontSize: "14px" }}>
-          Track student progress and goal completion across all programs.
+          Track player progress and goal completion across all programs.
         </p>
       </div>
 
@@ -141,11 +141,11 @@ export function Progress() {
           </div>
         </div>
 
-        {/* Student progress bars */}
+        {/* Player progress bars */
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <div className="mb-4">
-            <h3 className="text-gray-900">Student Goal Progress</h3>
-            <p className="text-gray-400" style={{ fontSize: "12px" }}>Average goal completion per student</p>
+            <h3 className="text-gray-900">Player Goal Progress</h3>
+            <p className="text-gray-400" style={{ fontSize: "12px" }}>Average goal completion per player</p>
           </div>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={studentProgressData} margin={{ bottom: 0 }}>
@@ -162,7 +162,7 @@ export function Progress() {
         </div>
       </div>
 
-      {/* Per-student progress cards */}
+      {/* Per-player progress cards */}
       <div>
         <h2 className="text-gray-900 mb-4">Individual Progress</h2>
         <div className="space-y-3">

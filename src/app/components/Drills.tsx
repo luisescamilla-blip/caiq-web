@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router";
+import { useApp, Drill } from "../context/AppContext";
 import {
   Plus,
   Search,
@@ -13,18 +14,6 @@ import {
   Image,
   FileText,
 } from "lucide-react";
-
-export interface Drill {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  tags: string[];
-  difficulty: "beginner" | "intermediate" | "advanced";
-  duration: number; // minutes
-  youtubeUrl?: string;
-  createdAt: string;
-}
 
 const DIFFICULTY_STYLES: Record<Drill["difficulty"], string> = {
   beginner: "bg-emerald-100 text-emerald-700",
@@ -44,19 +33,9 @@ const ICON_COLORS = [
   "from-purple-400 to-indigo-600",
 ];
 
-// Mock drills for now — will be replaced with Supabase
-const MOCK_DRILLS: Drill[] = [
-  { id: "d1", name: "Modified Rondos", description: "Possession-based drill in a circle. Focus on quick passing and movement off the ball.", category: "Passing", tags: ["possession", "group"], difficulty: "intermediate", duration: 20, createdAt: "2026-04-01" },
-  { id: "d2", name: "1v1 Attacking", description: "Attacker vs defender in a small grid. Develops dribbling, feints, and finishing under pressure.", category: "1v1", tags: ["dribbling", "finishing"], difficulty: "intermediate", duration: 15, createdAt: "2026-04-05" },
-  { id: "d3", name: "Agility Ladder", description: "Footwork and coordination drill using agility ladder. Multiple patterns for speed and quickness.", category: "Agility", tags: ["fitness", "speed"], difficulty: "beginner", duration: 10, createdAt: "2026-04-08" },
-  { id: "d4", name: "Fox Tails", description: "Players tuck a bib into their shorts. Objective: grab other players' tails while protecting your own.", category: "Dribbling", tags: ["fun", "warm-up", "kids"], difficulty: "beginner", duration: 10, createdAt: "2026-04-10" },
-  { id: "d5", name: "Crossing & Finishing", description: "Wide player delivers crosses for strikers to finish. Work both sides of the pitch.", category: "Shooting", tags: ["crossing", "finishing", "heading"], difficulty: "intermediate", duration: 25, createdAt: "2026-04-12" },
-  { id: "d6", name: "Penalty Pressure", description: "Penalty shootout with added pressure — coach gives distractions, defenders try to put off shooter.", category: "Shooting", tags: ["penalties", "mental"], difficulty: "advanced", duration: 15, createdAt: "2026-04-14" },
-];
-
 export function Drills() {
   const navigate = useNavigate();
-  const [drills, setDrills] = useState<Drill[]>(MOCK_DRILLS);
+  const { drills, addDrill, updateDrill, deleteDrill } = useApp();
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState("all");
   const [filterDifficulty, setFilterDifficulty] = useState<Drill["difficulty"] | "all">("all");
@@ -89,11 +68,11 @@ export function Drills() {
     setModalOpen(true);
   };
 
-  const saveDrill = () => {
+  const saveDrill = async () => {
     if (!form.name.trim()) return;
     const tags = form.tags.split(",").map((t) => t.trim()).filter(Boolean);
     if (editingDrill) {
-      setDrills((prev) => prev.map((d) => d.id === editingDrill.id ? { ...d, ...form, tags } : d));
+      await updateDrill({ ...editingDrill, ...form, tags, youtubeUrl: form.youtubeUrl || undefined });
     } else {
       const newDrill: Drill = {
         id: crypto.randomUUID(),
@@ -106,13 +85,13 @@ export function Drills() {
         youtubeUrl: form.youtubeUrl || undefined,
         createdAt: new Date().toISOString().split("T")[0],
       };
-      setDrills((prev) => [newDrill, ...prev]);
+      await addDrill(newDrill);
     }
     setModalOpen(false);
   };
 
-  const deleteDrill = (id: string) => {
-    setDrills((prev) => prev.filter((d) => d.id !== id));
+  const handleDeleteDrill = async (id: string) => {
+    await deleteDrill(id);
     setConfirmDelete(null);
     setMenuOpen(null);
   };
@@ -212,7 +191,7 @@ export function Drills() {
                     <Edit className="w-3.5 h-3.5" /> Edit
                   </button>
                   <button className="w-full flex items-center gap-2 px-3 py-2 text-red-500 hover:bg-red-50 transition-colors" style={{ fontSize: "13px" }}
-                    onClick={() => { setConfirmDelete(drill.id); setMenuOpen(null); }}>
+                    onClick={() => { setConfirmDelete(drill.id); setMenuOpen(null); }} >
                     <Trash2 className="w-3.5 h-3.5" /> Delete
                   </button>
                 </div>
@@ -361,7 +340,7 @@ export function Drills() {
             </p>
             <div className="flex gap-3">
               <button onClick={() => setConfirmDelete(null)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-600 rounded-xl" style={{ fontSize: "14px" }}>Cancel</button>
-              <button onClick={() => deleteDrill(confirmDelete)} className="flex-1 px-4 py-2.5 bg-red-500 text-white hover:bg-red-600 rounded-xl" style={{ fontSize: "14px" }}>Delete</button>
+              <button onClick={() => handleDeleteDrill(confirmDelete)} className="flex-1 px-4 py-2.5 bg-red-500 text-white hover:bg-red-600 rounded-xl" style={{ fontSize: "14px" }}>Delete</button>
             </div>
           </div>
         </div>
