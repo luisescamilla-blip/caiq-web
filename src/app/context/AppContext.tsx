@@ -158,11 +158,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // Map drills
         setDrills(rawDrills.map(mapDrill));
 
-        // Build session count per student
+        // Build completed session count per student (excludes cancelled)
         const sessionCountMap: Record<string, number> = {};
-        rawSessions.forEach((s) => {
-          sessionCountMap[s.student_id] = (sessionCountMap[s.student_id] ?? 0) + 1;
-        });
+        rawSessions
+          .filter((s) => s.status !== "cancelled")
+          .forEach((s) => {
+            sessionCountMap[s.student_id] = (sessionCountMap[s.student_id] ?? 0) + 1;
+          });
 
         // Map students with their goals, notes, and session counts
         const mappedStudents = rawStudents.map((s) => {
@@ -264,13 +266,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .single();
 
     if (error) { console.error("addSession error:", error); throw error; }
-    setSessions((prev) => [mapSession(data), ...prev]);
-    // Update student totalSessions count
-    setStudents((prev) =>
-      prev.map((s) =>
-        s.id === session.studentId ? { ...s, totalSessions: s.totalSessions + 1 } : s
-      )
-    );
+    const newSession = mapSession(data);
+    setSessions((prev) => {
+      const updated = [newSession, ...prev];
+      // Recompute totalSessions for this student from source of truth
+      if (newSession.status !== "cancelled") {
+        setStudents((prev) =>
+          prev.map((s) =>
+            s.id === newSession.studentId ? { ...s, totalSessions: s.totalSessions + 1 } : s
+          )
+        );
+      }
+      return updated;
+    });
   };
 
   const updateSession = async (session: Session) => {
@@ -291,7 +299,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .eq("coach_id", user.id);
 
     if (error) { console.error("updateSession error:", error); throw error; }
-    setSessions((prev) => prev.map((s) => (s.id === session.id ? session : s)));
+    setSessions((prev) => {
+      const updated = prev.map((s) => (s.id === session.id ? session : s));
+      // Recompute totalSessions for affected student (status may have changed)
+      setStudents((students) =>
+        students.map((s) => {
+          if (s.id !== session.studentId) return s;
+          const count = updated.filter(
+            (sess) => sess.studentId === s.id && sess.status !== "cancelled"
+          ).length;
+          return { ...s, totalSessions: count };
+        })
+      );
+      return updated;
+    });
   };
 
   const deleteSession = async (id: string) => {
@@ -304,17 +325,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
       .eq("coach_id", user.id);
 
     if (error) { console.error("deleteSession error:", error); throw error; }
-    setSessions((prev) => prev.filter((s) => s.id !== id));
-    // Update student totalSessions count
-    if (sessionToDelete) {
-      setStudents((prev) =>
-        prev.map((s) =>
-          s.id === sessionToDelete.studentId
-            ? { ...s, totalSessions: Math.max(0, s.totalSessions - 1) }
-            : s
-        )
-      );
-    }
+    setSessions((prev) => {
+      const updated = prev.filter((s) => s.id !== id);
+      // Recompute totalSessions from remaining non-cancelled sessions
+      if (sessionToDelete && sessionToDelete.status !== "cancelled") {
+        setStudents((students) =>
+          students.map((s) => {
+            if (s.id !== sessionToDelete.studentId) return s;
+            const count = updated.filter(
+              (sess) => sess.studentId === s.id && sess.status !== "cancelled"
+            ).length;
+            return { ...s, totalSessions: count };
+          })
+        );
+      }
+      return updated;
+    });
   };
 
   // ── Notes ─────────────────────────────────────────────────────────────────
