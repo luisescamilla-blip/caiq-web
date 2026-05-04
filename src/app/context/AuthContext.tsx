@@ -24,6 +24,7 @@ export interface ProfileUpdate {
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
+  authLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -50,15 +51,24 @@ function mapUser(supabaseUser: User | null, coachRow?: Record<string, string> | 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(false);
 
   const loadUserWithProfile = async (supabaseUser: User | null) => {
     if (!supabaseUser) { setUser(null); return; }
-    const { data: coachRow } = await supabase
-      .from("coaches")
-      .select("name, title, bio, phone, timezone, avatar_url")
-      .eq("id", supabaseUser.id)
-      .single();
+    setProfileLoading(true);
+    // Retry a couple times — coaches row is created by a DB trigger after signup
+    let coachRow = null;
+    for (let i = 0; i < 3; i++) {
+      const { data } = await supabase
+        .from("coaches")
+        .select("name, title, bio, phone, timezone, avatar_url")
+        .eq("id", supabaseUser.id)
+        .single();
+      if (data) { coachRow = data; break; }
+      await new Promise((r) => setTimeout(r, 500)); // wait 500ms between retries
+    }
     setUser(mapUser(supabaseUser, coachRow));
+    setProfileLoading(false);
   };
 
   useEffect(() => {
@@ -141,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) return null;
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, signIn, signUp, signOut, updateProfile, uploadAvatar }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, authLoading: profileLoading, signIn, signUp, signOut, updateProfile, uploadAvatar }}>
       {children}
     </AuthContext.Provider>
   );
