@@ -519,23 +519,42 @@ You can both answer questions AND take real actions using the available tools. W
 
   const uploadAttachments = async (files: typeof attachments) => {
     const uploaded: { url: string; type: 'image' | 'video'; name: string }[] = [];
+
+    // Get the current session JWT so storage uses authenticated role
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token;
+    console.log('[upload] session token present:', !!accessToken);
+
     for (const item of files) {
       try {
         const ext = (item.file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
         const safeId = `${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
         const path = `${safeId}.${ext}`;
         console.log('[upload] attempting:', path, item.file.type, item.file.size);
-        const { data, error } = await supabase.storage
-          .from('caiq-media')
-          .upload(path, item.file, { contentType: item.file.type, upsert: false });
-        if (error) {
-          console.error('[upload] error:', JSON.stringify(error));
-          throw new Error(error.message);
-        }
-        console.log('[upload] success:', data.path);
-        const { data: urlData } = supabase.storage.from('caiq-media').getPublicUrl(data.path);
-        console.log('[upload] public url:', urlData.publicUrl);
-        uploaded.push({ url: urlData.publicUrl, type: item.type, name: item.file.name });
+
+        // Use fetch directly with the user's JWT to ensure authenticated upload
+        const formData = new FormData();
+        formData.append('', item.file);
+        const res = await fetch(
+          `https://grnkodxkxzvtuarrocvl.supabase.co/storage/v1/object/caiq-media/${path}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+              'x-upsert': 'false',
+            },
+            body: item.file,
+          }
+        );
+        const result = await res.json();
+        console.log('[upload] response:', res.status, JSON.stringify(result));
+
+        if (!res.ok) throw new Error(result.message || 'Upload failed');
+
+        const publicUrl = `https://grnkodxkxzvtuarrocvl.supabase.co/storage/v1/object/public/caiq-media/${path}`;
+        console.log('[upload] public url:', publicUrl);
+        uploaded.push({ url: publicUrl, type: item.type, name: item.file.name });
       } catch (err) {
         console.error('[upload] caught:', err);
       }
