@@ -520,15 +520,25 @@ You can both answer questions AND take real actions using the available tools. W
   const uploadAttachments = async (files: typeof attachments) => {
     const uploaded: { url: string; type: 'image' | 'video'; name: string }[] = [];
     for (const item of files) {
-      const ext = (item.file.name.split('.').pop() || 'jpg').toLowerCase();
-      const safeId = `${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
-      const path = `${safeId}.${ext}`;
-      const { data, error } = await supabase.storage
-        .from('caiq-media')
-        .upload(path, item.file, { contentType: item.file.type, upsert: false });
-      if (error) { console.error('Upload error:', error); continue; }
-      const { data: urlData } = supabase.storage.from('caiq-media').getPublicUrl(data.path);
-      uploaded.push({ url: urlData.publicUrl, type: item.type, name: item.file.name });
+      try {
+        const ext = (item.file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '');
+        const safeId = `${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
+        const path = `${safeId}.${ext}`;
+        console.log('[upload] attempting:', path, item.file.type, item.file.size);
+        const { data, error } = await supabase.storage
+          .from('caiq-media')
+          .upload(path, item.file, { contentType: item.file.type, upsert: false });
+        if (error) {
+          console.error('[upload] error:', JSON.stringify(error));
+          throw new Error(error.message);
+        }
+        console.log('[upload] success:', data.path);
+        const { data: urlData } = supabase.storage.from('caiq-media').getPublicUrl(data.path);
+        console.log('[upload] public url:', urlData.publicUrl);
+        uploaded.push({ url: urlData.publicUrl, type: item.type, name: item.file.name });
+      } catch (err) {
+        console.error('[upload] caught:', err);
+      }
     }
     return uploaded;
   };
