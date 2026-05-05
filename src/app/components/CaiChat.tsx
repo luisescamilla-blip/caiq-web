@@ -4,6 +4,7 @@ import { useApp, Conversation, ConversationMessage } from "../context/AppContext
 import { useSearchParams, useNavigate } from "react-router";
 import { Student, Session, Goal, Note } from "../data/mockData";
 import { Send, Sparkles, Loader2, CheckCircle2, Mic, MicOff, Plus, Paperclip, X, Video } from "lucide-react";
+import { supabase } from "../../lib/supabase";
 
 type Message = ConversationMessage;
 
@@ -517,12 +518,7 @@ You can both answer questions AND take real actions using the available tools. W
   };
 
   const uploadAttachments = async (files: typeof attachments) => {
-    const { createClient } = await import('@supabase/supabase-js');
-    const supabase = createClient(
-      import.meta.env.VITE_SUPABASE_URL,
-      import.meta.env.VITE_SUPABASE_ANON_KEY
-    );
-    const uploaded: { url: string; type: string; name: string }[] = [];
+    const uploaded: { url: string; type: 'image' | 'video'; name: string }[] = [];
     for (const item of files) {
       const ext = item.file.name.split('.').pop();
       const path = `chat/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
