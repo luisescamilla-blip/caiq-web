@@ -61,6 +61,7 @@ interface AppContextType {
   updateDrill: (drill: Drill) => Promise<void>;
   deleteDrill: (id: string) => Promise<void>;
   addMediaToDrill: (drillId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
+  uploadStudentAvatar: (studentId: string, file: File) => Promise<string>;
   saveConversation: (conv: Conversation) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
 }
@@ -77,6 +78,7 @@ function mapStudent(row: any, goals: Goal[], notes: Note[], totalSessions: numbe
     email: row.email ?? "",
     phone: row.phone ?? "",
     avatar: row.avatar ?? row.name?.split(" ").map((w: string) => w[0]).join("").toUpperCase() ?? "??",
+    avatarUrl: row.avatar_url ?? undefined,
     status: row.status,
     joinDate: row.join_date ?? row.created_at?.slice(0, 10) ?? "",
     program: row.program ?? "",
@@ -605,6 +607,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDrills((prev) => prev.filter((d) => d.id !== id));
   };
 
+  const uploadStudentAvatar = async (studentId: string, file: File): Promise<string> => {
+    if (!user) throw new Error('Not authenticated');
+    const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+    const path = `students/${studentId}/avatar.${ext}`;
+    const { error } = await supabase.storage
+      .from('caiq-media')
+      .upload(path, file, { contentType: file.type, upsert: true });
+    if (error) throw error;
+    const { data } = supabase.storage.from('caiq-media').getPublicUrl(path);
+    const avatarUrl = `${data.publicUrl}?t=${Date.now()}`;
+    await supabase.from('students').update({ avatar_url: avatarUrl }).eq('id', studentId);
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, avatarUrl } : s));
+    return avatarUrl;
+  };
+
   const addMediaToDrill = async (drillId: string, url: string, type: 'photo' | 'video', caption?: string) => {
     if (!user) return;
     const { error } = await supabase.from("media").insert({
@@ -646,6 +663,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateDrill,
         deleteDrill,
         addMediaToDrill,
+        uploadStudentAvatar,
         conversations,
         saveConversation,
         deleteConversation,

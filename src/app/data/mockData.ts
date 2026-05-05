@@ -34,6 +34,7 @@ export interface Student {
   email: string;
   phone: string;
   avatar: string;
+  avatarUrl?: string;
   status: StudentStatus;
   joinDate: string;
   program: string;

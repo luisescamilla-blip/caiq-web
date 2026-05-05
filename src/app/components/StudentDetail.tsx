@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router";
 import { useApp } from "../context/AppContext";
 import { Goal, GoalStatus, Note } from "../data/mockData";
@@ -19,6 +19,8 @@ import {
   X,
   Check,
   ChevronDown,
+  Camera,
+  Loader2,
 } from "lucide-react";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -56,7 +58,10 @@ function generateId() {
 export function StudentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal } = useApp();
+  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, uploadStudentAvatar } = useApp();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const student = students.find((s) => s.id === id);
   const studentSessions = sessions.filter((s) => s.studentId === id);
@@ -159,8 +164,47 @@ export function StudentDetail() {
         <div className=" h-24 lg:h-20" />
         <div className="px-5 pb-5">
           <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-10 sm:-mt-8 mb-4">
-            <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarColor} flex items-center justify-center border-4 border-white shadow-lg flex-shrink-0`}>
-              <span className="text-white" style={{ fontSize: "22px", fontWeight: 800 }}>{student.avatar}</span>
+            <div className="relative flex-shrink-0">
+              {(avatarPreview || student.avatarUrl) ? (
+                <img
+                  src={avatarPreview ?? student.avatarUrl}
+                  alt={student.name}
+                  className="w-20 h-20 rounded-2xl object-cover border-4 border-white shadow-lg"
+                />
+              ) : (
+                <div className={`w-20 h-20 rounded-2xl bg-gradient-to-br ${avatarColor} flex items-center justify-center border-4 border-white shadow-lg`}>
+                  <span className="text-white" style={{ fontSize: "22px", fontWeight: 800 }}>{student.avatar}</span>
+                </div>
+              )}
+              <button
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={avatarUploading}
+                className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                {avatarUploading
+                  ? <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  : <Camera className="w-5 h-5 text-white" />}
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file || !id) return;
+                  setAvatarPreview(URL.createObjectURL(file));
+                  setAvatarUploading(true);
+                  try {
+                    await uploadStudentAvatar(id, file);
+                  } catch (err) {
+                    console.error('Avatar upload failed:', err);
+                    setAvatarPreview(null);
+                  } finally {
+                    setAvatarUploading(false);
+                  }
+                }}
+              />
             </div>
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2">
