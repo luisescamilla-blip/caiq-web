@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { X, User } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { X, User, Camera, Loader2 } from "lucide-react";
 import { Student, StudentStatus, PROGRAMS } from "../data/mockData";
+import { useApp } from "../context/AppContext";
 
 interface StudentModalProps {
   open: boolean;
@@ -29,6 +30,11 @@ function generateInitials(name: string): string {
 }
 
 export function StudentModal({ open, onClose, onSave, existing }: StudentModalProps) {
+  const { uploadStudentAvatar } = useApp();
+  const avatarInputRef = useRef<HTMLInputElement>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -49,9 +55,12 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
         status: existing.status,
         tags: existing.tags.join(", "),
       });
+      setAvatarPreview(existing.avatarUrl ?? null);
     } else {
       setForm({ name: "", email: "", phone: "", status: "active", program: PROGRAMS[0], tags: "" });
+      setAvatarPreview(null);
     }
+    setAvatarFile(null);
     setErrors({});
   }, [existing, open]);
 
@@ -60,8 +69,7 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!form.name.trim()) newErrors.name = "Name is required";
-    if (!form.email.trim()) newErrors.email = "Email is required";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email))
       newErrors.email = "Invalid email address";
     return newErrors;
   };
@@ -76,11 +84,28 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
       .map((t) => t.trim())
       .filter(Boolean);
 
+    const studentId = existing?.id ?? generateId();
+
+    const saveAndUpload = async (student: Student) => {
+      onSave(student);
+      if (avatarFile && student.id) {
+        setAvatarUploading(true);
+        try {
+          await uploadStudentAvatar(student.id, avatarFile);
+        } catch (err) {
+          console.error('Avatar upload failed:', err);
+        } finally {
+          setAvatarUploading(false);
+        }
+      }
+      onClose();
+    };
+
     if (existing) {
-      onSave({ ...existing, ...form, tags });
+      saveAndUpload({ ...existing, ...form, tags });
     } else {
       const newStudent: Student = {
-        id: generateId(),
+        id: studentId,
         name: form.name,
         email: form.email,
         phone: form.phone,
@@ -93,9 +118,8 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
         goals: [],
         notes: [],
       };
-      onSave(newStudent);
+      saveAndUpload(newStudent);
     }
-    onClose();
   };
 
   return (
@@ -127,6 +151,45 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4">
+
+          {/* Avatar */}
+          <div className="flex items-center gap-4">
+            <div className="relative flex-shrink-0">
+              {avatarPreview ? (
+                <img src={avatarPreview} alt="avatar" className="w-16 h-16 rounded-2xl object-cover border-2 border-indigo-100" />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-violet-400 to-indigo-500 flex items-center justify-center">
+                  <span className="text-white" style={{ fontSize: '18px', fontWeight: 800 }}>
+                    {form.name ? generateInitials(form.name) : '?'}
+                  </span>
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                className="absolute inset-0 rounded-2xl bg-black/40 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity cursor-pointer"
+              >
+                {avatarUploading ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Camera className="w-4 h-4 text-white" />}
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setAvatarFile(file);
+                  setAvatarPreview(URL.createObjectURL(file));
+                }}
+              />
+            </div>
+            <div>
+              <p className="text-gray-700" style={{ fontSize: '13px', fontWeight: 500 }}>Player Photo</p>
+              <p className="text-gray-400" style={{ fontSize: '11px' }}>JPG, PNG, WebP · optional</p>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>
@@ -145,7 +208,7 @@ export function StudentModal({ open, onClose, onSave, existing }: StudentModalPr
 
             <div>
               <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>
-                Email <span className="text-red-500">*</span>
+                Email <span className="text-gray-400" style={{ fontWeight: 400 }}>(optional)</span>
               </label>
               <input
                 type="email"
