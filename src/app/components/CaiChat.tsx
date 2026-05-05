@@ -520,12 +520,15 @@ You can both answer questions AND take real actions using the available tools. W
   const uploadAttachments = async (files: typeof attachments) => {
     const uploaded: { url: string; type: 'image' | 'video'; name: string }[] = [];
     for (const item of files) {
-      const ext = item.file.name.split('.').pop();
-      const path = `chat/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from('caiq-media').upload(path, item.file, { contentType: item.file.type });
+      const ext = (item.file.name.split('.').pop() || 'jpg').toLowerCase();
+      const safeId = `${Date.now()}${Math.random().toString(36).slice(2, 7)}`;
+      const path = `${safeId}.${ext}`;
+      const { data, error } = await supabase.storage
+        .from('caiq-media')
+        .upload(path, item.file, { contentType: item.file.type, upsert: false });
       if (error) { console.error('Upload error:', error); continue; }
-      const { data } = supabase.storage.from('caiq-media').getPublicUrl(path);
-      uploaded.push({ url: data.publicUrl, type: item.type, name: item.file.name });
+      const { data: urlData } = supabase.storage.from('caiq-media').getPublicUrl(data.path);
+      uploaded.push({ url: urlData.publicUrl, type: item.type, name: item.file.name });
     }
     return uploaded;
   };
