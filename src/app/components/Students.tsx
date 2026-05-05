@@ -218,9 +218,13 @@ export function Students() {
               <div className="p-5">
                 {/* Avatar & status */}
                 <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${getAvatarColor(student.id)} flex items-center justify-center flex-shrink-0`}>
-                    <span className="text-white" style={{ fontSize: "14px", fontWeight: 700 }}>{student.avatar}</span>
-                  </div>
+                  {student.avatarUrl ? (
+                    <img src={student.avatarUrl} alt={student.name} className="w-12 h-12 rounded-2xl object-cover flex-shrink-0" />
+                  ) : (
+                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${getAvatarColor(student.id)} flex items-center justify-center flex-shrink-0`}>
+                      <span className="text-white" style={{ fontSize: "14px", fontWeight: 700 }}>{student.avatar}</span>
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0 pt-0.5">
                     <h4 className="text-gray-900 truncate">{student.name}</h4>
                     <p className="text-gray-400 truncate" style={{ fontSize: "12px" }}>{student.program}</p>
@@ -295,9 +299,13 @@ export function Students() {
                 >
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getAvatarColor(student.id)} flex items-center justify-center flex-shrink-0`}>
-                        <span className="text-white" style={{ fontSize: "11px", fontWeight: 700 }}>{student.avatar}</span>
-                      </div>
+                      {student.avatarUrl ? (
+                        <img src={student.avatarUrl} alt={student.name} className="w-9 h-9 rounded-xl object-cover flex-shrink-0" />
+                      ) : (
+                        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${getAvatarColor(student.id)} flex items-center justify-center flex-shrink-0`}>
+                          <span className="text-white" style={{ fontSize: "11px", fontWeight: 700 }}>{student.avatar}</span>
+                        </div>
+                      )}
                       <div>
                         <p className="text-gray-900" style={{ fontSize: "14px", fontWeight: 600 }}>{student.name}</p>
                         <p className="text-gray-400" style={{ fontSize: "12px" }}>{student.email}</p>

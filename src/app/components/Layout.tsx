@@ -166,11 +166,15 @@ export function Layout() {
         {/* Coach profile */}
         <div className="px-3 pb-4">
           <div className="flex items-center gap-3 px-3 py-3 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-              <span className="text-white" style={{ fontSize: "13px", fontWeight: 700 }}>
-                {user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "LE"}
-              </span>
-            </div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                <span className="text-white" style={{ fontSize: "13px", fontWeight: 700 }}>
+                  {user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "LE"}
+                </span>
+              </div>
+            )}
             <div className="flex-1 min-w-0">
               <p className="text-gray-900 truncate" style={{ fontSize: "13px", fontWeight: 600 }}>{user?.name || "Coach"}</p>
               <p className="text-gray-400 truncate" style={{ fontSize: "11px" }}>{user?.email || ""}</p>
@@ -213,11 +217,15 @@ export function Layout() {
               <Bell className="w-5 h-5" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-indigo-500 rounded-full" />
             </button>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-              <span className="text-white" style={{ fontSize: "12px", fontWeight: 700 }}>
-                {user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "LE"}
-              </span>
-            </div>
+            {user?.avatarUrl ? (
+              <img src={user.avatarUrl} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white" style={{ fontSize: "12px", fontWeight: 700 }}>
+                  {user?.name?.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "LE"}
+                </span>
+              </div>
+            )}
           </div>
         </header>
 
