@@ -62,7 +62,7 @@ export function Sessions() {
     date: "",
     time: "10:00",
     duration: 60,
-    topic: TOPICS[0],
+    topic: "Training Session",
     status: "upcoming" as SessionStatus,
     notes: "",
   });
@@ -103,7 +103,7 @@ export function Sessions() {
       });
     } else {
       setEditingSession(null);
-      setForm({ studentId: students[0]?.id ?? "", date: "", time: "10:00", duration: 60, topic: TOPICS[0], status: "upcoming", notes: "" });
+      setForm({ studentId: students[0]?.id ?? "", date: "", time: "10:00", duration: 60, topic: "Training Session", status: "upcoming", notes: "" });
     }
     setModalOpen(true);
   };
@@ -380,15 +380,16 @@ export function Sessions() {
               </div>
 
               <div>
-                <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Topic *</label>
-                <select
+                <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Session Name *</label>
+                <input
+                  type="text"
                   value={form.topic}
                   onChange={(e) => setForm({ ...form, topic: e.target.value })}
-                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 transition-all appearance-none cursor-pointer"
+                  onBlur={(e) => { if (!e.target.value.trim()) setForm((f) => ({ ...f, topic: "Training Session" })); }}
+                  placeholder="e.g. Training Session, Strength Work..."
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 transition-all"
                   style={{ fontSize: "14px" }}
-                >
-                  {TOPICS.map((t) => <option key={t} value={t}>{t}</option>)}
-                </select>
+                />
               </div>
 
               <div className="grid grid-cols-3 gap-3">

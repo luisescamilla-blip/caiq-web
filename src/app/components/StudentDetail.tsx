@@ -18,7 +18,6 @@ import {
   CalendarDays,
   X,
   Check,
-  ChevronDown,
   Camera,
   Loader2,
 } from "lucide-react";
@@ -130,12 +129,19 @@ export function StudentDetail() {
     }
     setGoalModalOpen(true);
   };
+  const calcGoalStatus = (progress: number): GoalStatus => {
+    if (progress === 0) return "not-started";
+    if (progress >= 100) return "completed";
+    return "in-progress";
+  };
+
   const saveGoal = () => {
     if (!goalForm.title.trim()) return;
+    const status = calcGoalStatus(goalForm.progress);
     if (editingGoal) {
-      updateGoal(student.id, { ...editingGoal, ...goalForm });
+      updateGoal(student.id, { ...editingGoal, ...goalForm, status });
     } else {
-      addGoal(student.id, { id: generateId(), ...goalForm });
+      addGoal(student.id, { id: generateId(), ...goalForm, status });
     }
     setGoalModalOpen(false);
   };
@@ -305,7 +311,9 @@ export function StudentDetail() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-gray-900">Goals Overview</h3>
               <button onClick={() => { openGoalModal(); setActiveTab("goals"); }}
-                className="text-indigo-600 hover:text-indigo-700" style={{ fontSize: "13px" }}>+ Add Goal</button>
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl transition-colors" style={{ fontSize: "13px" }}>
+                <Plus className="w-4 h-4" /> Add Goal
+              </button>
             </div>
             {/* Overall progress */}
             <div className="mb-4">
@@ -350,7 +358,9 @@ export function StudentDetail() {
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-gray-900">Recent Notes</h3>
-              <button onClick={() => openNoteModal()} className="text-indigo-600 hover:text-indigo-700" style={{ fontSize: "13px" }}>+ Add Note</button>
+              <button onClick={() => openNoteModal()} className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-xl transition-colors" style={{ fontSize: "13px" }}>
+                <Plus className="w-4 h-4" /> Add Note
+              </button>
             </div>
             {student.notes.length === 0 ? (
               <div className="text-center py-8">
@@ -614,30 +624,15 @@ export function StudentDetail() {
                   style={{ fontSize: "14px" }}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Status</label>
-                  <select
-                    value={goalForm.status}
-                    onChange={(e) => setGoalForm({ ...goalForm, status: e.target.value as GoalStatus })}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 transition-all appearance-none cursor-pointer"
-                    style={{ fontSize: "13px" }}
-                  >
-                    <option value="not-started">Not Started</option>
-                    <option value="in-progress">In Progress</option>
-                    <option value="completed">Completed</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Due Date</label>
-                  <input
-                    type="date"
-                    value={goalForm.dueDate}
-                    onChange={(e) => setGoalForm({ ...goalForm, dueDate: e.target.value })}
-                    className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 transition-all cursor-pointer"
-                    style={{ fontSize: "13px" }}
-                  />
-                </div>
+              <div>
+                <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Due Date</label>
+                <input
+                  type="date"
+                  value={goalForm.dueDate}
+                  onChange={(e) => setGoalForm({ ...goalForm, dueDate: e.target.value })}
+                  className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 transition-all cursor-pointer"
+                  style={{ fontSize: "13px" }}
+                />
               </div>
               <div>
                 <label className="block text-gray-700 mb-1" style={{ fontSize: "13px" }}>Progress: {goalForm.progress}%</label>
@@ -645,7 +640,7 @@ export function StudentDetail() {
                   type="range"
                   min={0} max={100} step={5}
                   value={goalForm.progress}
-                  onChange={(e) => setGoalForm({ ...goalForm, progress: parseInt(e.target.value) })}
+                  onChange={(e) => setGoalForm({ ...goalForm, progress: parseInt(e.target.value), status: calcGoalStatus(parseInt(e.target.value)) })}
                   className="w-full accent-indigo-600 cursor-pointer"
                 />
               </div>
