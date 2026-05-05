@@ -34,6 +34,7 @@ export interface Drill {
   difficulty: "beginner" | "intermediate" | "advanced";
   duration: number;
   youtubeUrl?: string;
+  mediaUrls?: { url: string; type: 'photo' | 'video'; caption?: string }[];
   createdAt: string;
 }
 
@@ -58,6 +59,7 @@ interface AppContextType {
   addDrill: (drill: Drill) => Promise<void>;
   updateDrill: (drill: Drill) => Promise<void>;
   deleteDrill: (id: string) => Promise<void>;
+  addMediaToDrill: (drillId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
   saveConversation: (conv: Conversation) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
 }
@@ -116,6 +118,7 @@ function mapDrill(row: any): Drill {
     difficulty: row.difficulty ?? "beginner",
     duration: row.duration ?? 15,
     youtubeUrl: row.youtube_url ?? undefined,
+    mediaUrls: row.media ?? undefined,
     createdAt: row.created_at?.slice(0, 10) ?? "",
   };
 }
@@ -601,6 +604,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setDrills((prev) => prev.filter((d) => d.id !== id));
   };
 
+  const addMediaToDrill = async (drillId: string, url: string, type: 'photo' | 'video', caption?: string) => {
+    if (!user) return;
+    const { error } = await supabase.from("media").insert({
+      coach_id: user.id,
+      url,
+      type,
+      caption: caption ?? null,
+      parent_type: "drill",
+      parent_id: drillId,
+    });
+    if (error) { console.error("addMediaToDrill error:", error); throw error; }
+    // Update local state
+    setDrills((prev) => prev.map((d) => {
+      if (d.id !== drillId) return d;
+      return { ...d, mediaUrls: [...(d.mediaUrls ?? []), { url, type, caption }] };
+    }));
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -623,6 +644,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addDrill,
         updateDrill,
         deleteDrill,
+        addMediaToDrill,
         conversations,
         saveConversation,
         deleteConversation,

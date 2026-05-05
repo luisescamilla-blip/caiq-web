@@ -9,6 +9,7 @@ type Message = ConversationMessage;
 
 const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_MODEL = "llama-3.3-70b-versatile";
+const GROQ_VISION_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct";
 
 const SUGGESTED_PROMPTS = [
   "Summarize my upcoming sessions this week",
@@ -142,11 +143,28 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "attach_media_to_drill",
+      description: "Attach an uploaded image or video to a drill. Use this when the coach shares media and wants it linked to a drill.",
+      parameters: {
+        type: "object",
+        properties: {
+          drill_name: { type: "string", description: "Partial or full name of the drill" },
+          media_url: { type: "string", description: "The URL of the uploaded media file" },
+          media_type: { type: "string", enum: ["photo", "video"], description: "Type of media" },
+          caption: { type: "string", description: "Optional caption or description of the media" },
+        },
+        required: ["drill_name", "media_url", "media_type"],
+      },
+    },
+  },
 ];
 
 export function CaiChat() {
   const { user } = useAuth();
-  const { students, sessions, conversations, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent, saveConversation } = useApp();
+  const { students, sessions, drills, conversations, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent, addMediaToDrill, saveConversation } = useApp();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -165,6 +183,7 @@ export function CaiChat() {
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
   const [attachments, setAttachments] = useState<{ file: File; localUrl: string; type: 'image' | 'video' }[]>([]);
+  const [uploadedUrls, setUploadedUrls] = useState<{ url: string; type: 'image' | 'video' }[]>([]);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -270,9 +289,19 @@ export function CaiChat() {
         return `- ${s.date} ${s.time}: ${student?.name ?? "Unknown"} — ${s.topic} (${s.duration}min)${s.notes ? ` | Notes: ${s.notes}` : ""}`;
       }).join("\n");
 
-    return `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage players, sessions, goals, and notes.
+    const drillsText = drills.length > 0
+      ? drills.map(d => `- ${d.name} (${d.category}, ${d.difficulty}) — ${d.description || 'no description'}${d.mediaUrls?.length ? ` | ${d.mediaUrls.length} media file(s)` : ''}`).join('\n')
+      : 'No drills yet.';
 
-Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+    const pendingMedia = uploadedUrls.map(u => u.url).join(', ');
+
+    return `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage players, sessions, goals, notes, and drills.
+
+Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}${pendingMedia ? `
+
+== JUST UPLOADED MEDIA ==
+The coach just uploaded these files. If they want to attach them to a drill, use the attach_media_to_drill tool with these URLs:
+${uploadedUrls.map(u => `- ${u.url} (${u.type})`).join('\n')}` : ''}
 
 == ACTIVE PLAYERS (${activeStudents.length}) ==
 ${activeStudents.length > 0 ? activeStudents.map(buildStudentBlock).join("\n\n") : "No active players yet."}
@@ -282,6 +311,9 @@ ${upcomingSessions.length > 0 ? sessionSummary(upcomingSessions) : "No upcoming 
 
 == RECENTLY COMPLETED SESSIONS (last ${recentCompleted.length}) ==
 ${recentCompleted.length > 0 ? sessionSummary(recentCompleted) : "No completed sessions yet."}
+
+== DRILLS (${drills.length}) ==
+${drillsText}
 
 You can both answer questions AND take real actions using the available tools. When a coach asks you to create/add/schedule something, use the appropriate tool to do it — don't just describe what you would do. Be concise and confirm what you did. Never mention UUIDs or internal IDs in your responses.`;
   };
@@ -393,6 +425,15 @@ You can both answer questions AND take real actions using the available tools. W
       return { type: "delete_student", summary: `✅ Deleted student: **${student.name}**` };
     }
 
+    if (name === "attach_media_to_drill") {
+      const drill = drills.find((d) =>
+        d.name.toLowerCase().includes(args.drill_name.toLowerCase())
+      );
+      if (!drill) return { type: "attach_media_to_drill", summary: `❌ Could not find drill matching "${args.drill_name}"` };
+      await addMediaToDrill(drill.id, args.media_url, args.media_type, args.caption);
+      return { type: "attach_media_to_drill", summary: `✅ Media attached to drill: **${drill.name}**` };
+    }
+
     if (name === "add_goal") {
       const student = students.find((s) =>
         s.name.toLowerCase().includes(args.student_name.toLowerCase())
@@ -499,16 +540,18 @@ You can both answer questions AND take real actions using the available tools. W
     if (loading) return;
 
     setUploading(true);
-    let mediaNote = '';
+    let freshUploadedUrls: { url: string; type: 'image' | 'video'; name: string }[] = [];
     if (attachments.length > 0) {
-      const uploaded = await uploadAttachments(attachments);
-      if (uploaded.length > 0) {
-        mediaNote = `\n[Coach attached ${uploaded.length} file(s): ${uploaded.map(u => u.name).join(', ')}]`;
-      }
+      freshUploadedUrls = await uploadAttachments(attachments);
       attachments.forEach(a => URL.revokeObjectURL(a.localUrl));
       setAttachments([]);
+      setUploadedUrls(freshUploadedUrls.map(u => ({ url: u.url, type: u.type })));
     }
     setUploading(false);
+
+    const mediaNote = freshUploadedUrls.length > 0
+      ? `\n[Coach attached ${freshUploadedUrls.length} file(s): ${freshUploadedUrls.map(u => u.name).join(', ')}]`
+      : '';
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
@@ -523,6 +566,29 @@ You can both answer questions AND take real actions using the available tools. W
     setLoading(true);
 
     try {
+      // Use vision model if images are attached, otherwise standard model
+      const hasImages = freshUploadedUrls.some(u => u.type === 'image');
+      const modelToUse = hasImages ? GROQ_VISION_MODEL : GROQ_MODEL;
+
+      // Build messages — last user message gets image_url parts if vision
+      const historyMessages = updatedMessages
+        .filter((m) => m.id !== "welcome")
+        .map((m, idx, arr) => {
+          if (hasImages && idx === arr.length - 1 && m.role === 'user') {
+            // Vision message: content as array with text + images
+            return {
+              role: m.role,
+              content: [
+                { type: 'text', text: m.content },
+                ...freshUploadedUrls
+                  .filter(u => u.type === 'image')
+                  .map(u => ({ type: 'image_url', image_url: { url: u.url } })),
+              ],
+            };
+          }
+          return { role: m.role, content: m.content };
+        });
+
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -530,15 +596,13 @@ You can both answer questions AND take real actions using the available tools. W
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: GROQ_MODEL,
+          model: modelToUse,
           messages: [
             { role: "system", content: buildSystemPrompt() },
-            ...updatedMessages
-              .filter((m) => m.id !== "welcome")
-              .map((m) => ({ role: m.role, content: m.content })),
+            ...historyMessages,
           ],
-          tools: TOOLS,
-          tool_choice: "auto",
+          tools: hasImages ? undefined : TOOLS,
+          tool_choice: hasImages ? undefined : "auto",
           max_tokens: 1024,
           temperature: 0.7,
         }),
@@ -610,6 +674,7 @@ You can both answer questions AND take real actions using the available tools. W
       ]);
     } finally {
       setLoading(false);
+      setUploadedUrls([]);
       inputRef.current?.focus();
     }
   };
