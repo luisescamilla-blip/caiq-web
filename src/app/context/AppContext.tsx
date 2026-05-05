@@ -14,6 +14,7 @@ export interface ConversationMessage {
   content: string;
   timestamp: string;
   action?: { type: string; summary: string };
+  mediaUrls?: { url: string; type: 'image' | 'video' }[];
 }
 
 export interface Conversation {

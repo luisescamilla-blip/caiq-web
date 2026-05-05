@@ -557,6 +557,7 @@ You can both answer questions AND take real actions using the available tools. W
       role: "user",
       content: content + mediaNote,
       timestamp: new Date().toISOString(),
+      mediaUrls: freshUploadedUrls.length > 0 ? freshUploadedUrls.map(u => ({ url: u.url, type: u.type })) : undefined,
     };
 
     const updatedMessages = [...messages, userMsg];
@@ -751,6 +752,18 @@ You can both answer questions AND take real actions using the available tools. W
                       </span>
                     </div>
                   )}
+                  {/* Media attachments */}
+                  {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {msg.mediaUrls.map((m, i) =>
+                        m.type === 'image' ? (
+                          <img key={i} src={m.url} alt="attachment" className="rounded-xl max-w-xs max-h-48 object-cover border border-indigo-300" />
+                        ) : (
+                          <video key={i} src={m.url} controls className="rounded-xl max-w-xs max-h-48 border border-indigo-300" />
+                        )
+                      )}
+                    </div>
+                  )}
                   <div
                     className={`px-4 py-3 rounded-2xl ${
                       isUser
@@ -759,7 +772,7 @@ You can both answer questions AND take real actions using the available tools. W
                     }`}
                     style={{ fontSize: "14px", lineHeight: "1.6", whiteSpace: "pre-wrap" }}
                   >
-                    {msg.content}
+                    {msg.content.replace(/\n?\[Coach attached \d+ file\(s\):.*?\]$/, '').trim()}
                   </div>
                   <span className="mt-1 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" style={{ fontSize: "11px" }}>
                     {formatTime(msg.timestamp)}
