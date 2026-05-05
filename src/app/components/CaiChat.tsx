@@ -3,7 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useApp, Conversation, ConversationMessage } from "../context/AppContext";
 import { useSearchParams, useNavigate } from "react-router";
 import { Student, Session, Goal, Note } from "../data/mockData";
-import { Send, Sparkles, Loader2, CheckCircle2, Mic, MicOff, Plus } from "lucide-react";
+import { Send, Sparkles, Loader2, CheckCircle2, Mic, MicOff, Plus, Paperclip, X, Video } from "lucide-react";
 
 type Message = ConversationMessage;
 
@@ -164,6 +164,9 @@ export function CaiChat() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [listening, setListening] = useState(false);
+  const [attachments, setAttachments] = useState<{ file: File; localUrl: string; type: 'image' | 'video' }[]>([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load existing conversation if conv param provided
@@ -453,14 +456,64 @@ You can both answer questions AND take real actions using the available tools. W
     } catch { return undefined; }
   };
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length) return;
+    const previews = files.map(file => ({
+      file,
+      localUrl: URL.createObjectURL(file),
+      type: (file.type.startsWith('video/') ? 'video' : 'image') as 'image' | 'video',
+    }));
+    setAttachments(prev => [...prev, ...previews]);
+    e.target.value = '';
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments(prev => {
+      URL.revokeObjectURL(prev[index].localUrl);
+      return prev.filter((_, i) => i !== index);
+    });
+  };
+
+  const uploadAttachments = async (files: typeof attachments) => {
+    const { createClient } = await import('@supabase/supabase-js');
+    const supabase = createClient(
+      import.meta.env.VITE_SUPABASE_URL,
+      import.meta.env.VITE_SUPABASE_ANON_KEY
+    );
+    const uploaded: { url: string; type: string; name: string }[] = [];
+    for (const item of files) {
+      const ext = item.file.name.split('.').pop();
+      const path = `chat/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from('caiq-media').upload(path, item.file, { contentType: item.file.type });
+      if (error) { console.error('Upload error:', error); continue; }
+      const { data } = supabase.storage.from('caiq-media').getPublicUrl(path);
+      uploaded.push({ url: data.publicUrl, type: item.type, name: item.file.name });
+    }
+    return uploaded;
+  };
+
   const sendMessage = async (text?: string) => {
     const content = (text ?? input).trim();
-    if (!content || loading) return;
+    if (!content && attachments.length === 0) return;
+    if (loading) return;
+
+    setUploading(true);
+    let mediaNote = '';
+    if (attachments.length > 0) {
+      const uploaded = await uploadAttachments(attachments);
+      if (uploaded.length > 0) {
+        mediaNote = `\n[Coach attached ${uploaded.length} file(s): ${uploaded.map(u => u.name).join(', ')}]`;
+      }
+      attachments.forEach(a => URL.revokeObjectURL(a.localUrl));
+      setAttachments([]);
+    }
+    setUploading(false);
 
     const userMsg: Message = {
       id: `u-${Date.now()}`,
       role: "user",
-      content,
+      content: content + mediaNote,
       timestamp: new Date().toISOString(),
     };
 
@@ -670,6 +723,41 @@ You can both answer questions AND take real actions using the available tools. W
       {/* Input */}
       <div className="bg-white border-t border-gray-200 px-4 lg:px-8 py-4 flex-shrink-0">
         <div className="max-w-3xl mx-auto">
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            style={{ display: 'none' }}
+            onChange={handleFileSelect}
+          />
+
+          {/* Attachment previews */}
+          {attachments.length > 0 && (
+            <div className="flex gap-2 mb-2 flex-wrap">
+              {attachments.map((item, i) => (
+                <div key={i} className="relative flex-shrink-0">
+                  {item.type === 'image' ? (
+                    <img src={item.localUrl} alt={item.file.name} className="w-16 h-16 object-cover rounded-xl border border-gray-200" />
+                  ) : (
+                    <div className="w-16 h-16 rounded-xl border border-gray-200 bg-gray-100 flex flex-col items-center justify-center gap-1">
+                      <Video className="w-5 h-5 text-gray-400" />
+                      <span className="text-gray-400 text-center px-1" style={{ fontSize: '9px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>{item.file.name}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(i)}
+                    className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center border-none cursor-pointer"
+                  >
+                    <X className="w-2.5 h-2.5 text-white" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {listening && (
             <div className="flex items-center gap-2 mb-2 px-3 py-2 bg-red-50 border border-red-200 rounded-xl">
               <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
@@ -700,6 +788,15 @@ You can both answer questions AND take real actions using the available tools. W
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={loading}
+                  className={`p-1.5 rounded-lg transition-all ${attachments.length > 0 ? 'text-indigo-600 bg-indigo-50' : 'text-gray-400 hover:text-indigo-600 hover:bg-indigo-50'}`}
+                  title="Attach image or video"
+                >
+                  <Paperclip className="w-4 h-4" />
+                </button>
+                <button
                   onClick={toggleVoice}
                   disabled={loading}
                   className={`p-1.5 rounded-lg transition-all ${
@@ -713,14 +810,14 @@ You can both answer questions AND take real actions using the available tools. W
                 </button>
                 <button
                   onClick={() => sendMessage()}
-                  disabled={!input.trim() || loading}
+                  disabled={(!input.trim() && attachments.length === 0) || loading || uploading}
                   className={`p-1.5 rounded-lg transition-all ${
-                    input.trim() && !loading
+                    (input.trim() || attachments.length > 0) && !loading && !uploading
                       ? "bg-indigo-600 text-white hover:bg-indigo-700"
                       : "bg-gray-100 text-gray-400 cursor-not-allowed"
                   }`}
                 >
-                  <Send className="w-4 h-4" />
+                  {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
                 </button>
               </div>
             </div>
