@@ -89,7 +89,7 @@ export function SessionDetail() {
     : 0;
 
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   // Note handlers
   const openNoteModal = (note?: Note) => {
@@ -136,7 +136,7 @@ export function SessionDetail() {
 
   const tabs = [
     { key: "overview", label: "Overview" },
-    { key: "drills", label: `Drills (${studentSessions.length})` },
+    { key: "drills", label: `Drills (0)` },
     { key: "goals", label: `Goals (${student.goals.length})` },
     { key: "notes", label: `Notes (${student.notes.length})` },
     { key: "media", label: "Photos & Videos" },
@@ -356,7 +356,7 @@ export function SessionDetail() {
               <Plus className="w-4 h-4" /> Add Drill
             </button>
           </div>
-          {studentSessions.length === 0 ? (
+          {true ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
               <Dumbbell className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400" style={{ fontSize: "14px" }}>No drills recorded yet</p>

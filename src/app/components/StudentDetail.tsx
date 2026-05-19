@@ -94,7 +94,7 @@ export function StudentDetail() {
     : 0;
 
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 
   // Note handlers
   const openNoteModal = (note?: Note) => {

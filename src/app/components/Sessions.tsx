@@ -85,7 +85,7 @@ export function Sessions() {
   const getStudentAvatar = (id: string) => students.find((s) => s.id === id)?.avatar ?? "??";
 
   const formatDate = (dateStr: string, time?: string) =>
-    new Date(dateStr + (time ? `T${time}` : "")).toLocaleDateString("en-US", {
+    new Date(dateStr + (time ? `T${time}` : "T00:00:00")).toLocaleDateString("en-US", {
       month: "short", day: "numeric", year: "numeric",
     });
 
@@ -108,15 +108,19 @@ export function Sessions() {
     setModalOpen(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.studentId || !form.date) return;
-    if (editingSession) {
-      updateSession({ ...editingSession, ...form });
-    } else {
-      addSession({ id: generateId(), ...form });
-      // increment student totalSessions
+    try {
+      if (editingSession) {
+        await updateSession({ ...editingSession, ...form });
+      } else {
+        await addSession({ id: generateId(), ...form });
+      }
+      setModalOpen(false);
+    } catch (err) {
+      console.error('handleSave error:', err);
+      alert('Failed to save session. Please try again.');
     }
-    setModalOpen(false);
   };
 
   // Calendar helpers
