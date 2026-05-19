@@ -62,7 +62,7 @@ export function Dashboard() {
   const getStudentAvatar = (id: string) => students.find((s) => s.id === id)?.avatar ?? "??";
 
   const formatDate = (dateStr: string, time?: string) => {
-    const date = new Date(dateStr + (time ? `T${time}` : ""));
+    const date = new Date(dateStr + (time ? `T${time}` : "T00:00:00"));
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 

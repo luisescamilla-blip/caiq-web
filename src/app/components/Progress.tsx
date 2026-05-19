@@ -72,7 +72,7 @@ export function Progress() {
     AVATAR_COLORS[id.charCodeAt(id.length - 1) % AVATAR_COLORS.length];
 
   const formatDate = (dateStr: string) =>
-    new Date(dateStr).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    new Date(dateStr + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   return (
     <div className="p-4 lg:p-6 space-y-6">

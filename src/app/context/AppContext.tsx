@@ -333,7 +333,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateSession = async (session: Session) => {
     if (!user) return;
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("sessions")
       .update({
         student_id: session.studentId,
@@ -346,9 +346,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", session.id)
-      .eq("coach_id", user.id);
+      .eq("coach_id", user.id)
+      .select();
 
     if (error) { console.error("updateSession error:", error); throw error; }
+    if (!data || data.length === 0) {
+      console.error("updateSession: no rows updated — possible RLS or coach_id mismatch");
+      throw new Error("Session could not be updated. Please try again.");
+    }
     setSessions((prev) => {
       const updated = prev.map((s) => (s.id === session.id ? session : s));
       // Recompute totalSessions for affected student (status may have changed)
