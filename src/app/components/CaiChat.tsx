@@ -344,20 +344,9 @@ export function CaiChat() {
       ? drills.map(d => `- ${d.name} (${d.category}, ${d.difficulty}) — ${d.description || 'no description'}${d.mediaUrls?.length ? ` | ${d.mediaUrls.length} media file(s)` : ''}`).join('\n')
       : 'No drills yet.';
 
-    const pendingMedia = uploadedUrls.map(u => u.url).join(', ');
+    const basePrompt = `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage players, sessions, goals, notes, and drills.
 
-    return `You are Cai, an AI assistant for Coach ${user?.name ?? ""}. You help coaches manage players, sessions, goals, notes, and drills.
-
-Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}${pendingMedia ? `
-
-== JUST UPLOADED MEDIA ==
-The coach just uploaded these files. Route them based on context:
-- If the coach mentions a player → use attach_media_to_player
-- If the coach mentions a session or date → use attach_media_to_session
-- If the coach mentions a drill → use attach_media_to_drill
-- If no context is clear → ask where to attach it
-URLs:
-${uploadedUrls.map(u => `- ${u.url} (${u.type})`).join('\n')}` : ''}
+Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
 
 == ACTIVE PLAYERS (${activeStudents.length}) ==
 ${activeStudents.length > 0 ? activeStudents.map(buildStudentBlock).join("\n\n") : "No active players yet."}
@@ -372,6 +361,22 @@ ${recentCompleted.length > 0 ? sessionSummary(recentCompleted) : "No completed s
 ${drillsText}
 
 You can both answer questions AND take real actions using the available tools. When a coach asks you to create/add/schedule something, use the appropriate tool to do it — don't just describe what you would do. Be concise and confirm what you did. Never mention UUIDs or internal IDs in your responses.`;
+    return basePrompt;
+  };
+
+  const buildSystemPromptWithMedia = (freshMedia: { url: string; type: 'image' | 'video' }[]) => {
+    const base = buildSystemPrompt();
+    if (freshMedia.length === 0) return base;
+    return base + `
+
+== JUST UPLOADED MEDIA ==
+The coach just uploaded these files. Route them based on context:
+- If the coach mentions a player → use attach_media_to_player
+- If the coach mentions a session or date → use attach_media_to_session
+- If the coach mentions a drill → use attach_media_to_drill
+- If no context is clear → ask the coach where to attach it
+URLs:
+${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
   };
 
   // Execute a tool call
@@ -721,11 +726,11 @@ You can both answer questions AND take real actions using the available tools. W
         body: JSON.stringify({
           model: modelToUse,
           messages: [
-            { role: "system", content: buildSystemPrompt() },
+            { role: "system", content: buildSystemPromptWithMedia(freshUploadedUrls.map(u => ({ url: u.url, type: u.type }))) },
             ...historyMessages,
           ],
-          tools: hasImages ? undefined : TOOLS,
-          tool_choice: hasImages ? undefined : "auto",
+          tools: TOOLS,
+          tool_choice: "auto",
           max_tokens: 1024,
           temperature: 0.7,
         }),
@@ -753,7 +758,7 @@ You can both answer questions AND take real actions using the available tools. W
           body: JSON.stringify({
             model: GROQ_MODEL,
             messages: [
-              { role: "system", content: buildSystemPrompt() },
+              { role: "system", content: buildSystemPromptWithMedia(freshUploadedUrls.map(u => ({ url: u.url, type: u.type }))) },
               ...updatedMessages.filter((m) => m.id !== "welcome").map((m) => ({ role: m.role, content: m.content })),
               { role: "assistant", content: null, tool_calls: choice.message.tool_calls },
               { role: "tool", tool_call_id: toolCall.id, content: JSON.stringify(result) },
