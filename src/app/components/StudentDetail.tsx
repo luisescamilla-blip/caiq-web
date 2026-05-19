@@ -543,8 +543,11 @@ export function StudentDetail() {
                 let mediaContent: { text: string; mediaUrl: string; mediaType: 'photo' | 'video' } | null = null;
                 try {
                   const parsed = JSON.parse(note.content);
+                  console.log('[note parse]', note.id, 'parsed:', parsed, 'mediaUrl:', parsed.mediaUrl);
                   if (parsed.mediaUrl) mediaContent = parsed;
-                } catch {}
+                } catch (e) {
+                  console.log('[note parse error]', note.id, note.content, e);
+                }
                 return (
                 <div key={note.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <div className="flex items-start justify-between gap-4">
