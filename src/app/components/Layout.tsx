@@ -28,7 +28,7 @@ const navItems = [
 ];
 
 const caiItems = [
-  { icon: Sparkles, label: "Chat with Cai", path: "/kai" },
+  { icon: Sparkles, label: "Chat w Cai", path: "/kai" },
 ];
 
 export function Layout() {

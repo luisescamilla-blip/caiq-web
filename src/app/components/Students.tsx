@@ -66,11 +66,11 @@ export function Students() {
     return matchesSearch && matchesStatus && matchesProgram;
   });
 
-  const handleSave = (student: Student) => {
+  const handleSave = async (student: Student) => {
     if (editingStudent) {
-      updateStudent(student);
+      await updateStudent(student);
     } else {
-      addStudent(student);
+      await addStudent(student);
     }
   };
 
