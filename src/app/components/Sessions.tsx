@@ -39,7 +39,7 @@ const TOPICS = [
 ];
 
 function generateId() {
-  return "sess" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return crypto.randomUUID();
 }
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];

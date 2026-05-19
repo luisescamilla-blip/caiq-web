@@ -17,7 +17,7 @@ const STATUS_OPTIONS: { value: StudentStatus; label: string }[] = [
 ];
 
 function generateId() {
-  return "s" + Date.now().toString(36) + Math.random().toString(36).slice(2);
+  return crypto.randomUUID();
 }
 
 function generateInitials(name: string): string {
