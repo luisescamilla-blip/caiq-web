@@ -402,7 +402,12 @@ export function Sessions() {
                   <input
                     type="date"
                     value={form.date}
-                    onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    onChange={(e) => {
+                      const picked = e.target.value;
+                      const today = new Date().toISOString().split("T")[0];
+                      const autoStatus = picked && picked < today ? "completed" : "upcoming";
+                      setForm({ ...form, date: picked, status: autoStatus as SessionStatus });
+                    }}
                     className="w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 transition-all cursor-pointer"
                     style={{ fontSize: "14px" }}
                   />
