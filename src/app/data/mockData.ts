@@ -15,6 +15,9 @@ export interface Note {
   date: string;
   content: string;
   sessionId?: string;
+  parentId?: string;
+  mediaUrl?: string;
+  mediaType?: 'photo' | 'video';
 }
 
 export interface Session {

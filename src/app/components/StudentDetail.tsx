@@ -539,14 +539,33 @@ export function StudentDetail() {
             </div>
           ) : (
             <div className="space-y-3">
-              {student.notes.map((note) => (
+              {student.notes.map((note) => {
+                let mediaContent: { text: string; mediaUrl: string; mediaType: 'photo' | 'video' } | null = null;
+                try {
+                  const parsed = JSON.parse(note.content);
+                  if (parsed.mediaUrl) mediaContent = parsed;
+                } catch {}
+                return (
                 <div key={note.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <p className="text-indigo-600 mb-2" style={{ fontSize: "12px", fontWeight: 600 }}>
                         {formatDate(note.date)}
                       </p>
-                      <p className="text-gray-700" style={{ fontSize: "14px", lineHeight: 1.7 }}>{note.content}</p>
+                      {mediaContent ? (
+                        <div>
+                          {mediaContent.mediaType === 'photo' ? (
+                            <img src={mediaContent.mediaUrl} alt={mediaContent.text} className="rounded-xl max-w-xs max-h-48 object-cover mb-2 border border-gray-200" />
+                          ) : (
+                            <video src={mediaContent.mediaUrl} controls className="rounded-xl max-w-xs max-h-48 mb-2 border border-gray-200" />
+                          )}
+                          {mediaContent.text && mediaContent.text !== 'Media attachment' && (
+                            <p className="text-gray-700" style={{ fontSize: "14px", lineHeight: 1.7 }}>{mediaContent.text}</p>
+                          )}
+                        </div>
+                      ) : (
+                        <p className="text-gray-700" style={{ fontSize: "14px", lineHeight: 1.7 }}>{note.content}</p>
+                      )}
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
                       <button
@@ -564,7 +583,8 @@ export function StudentDetail() {
                     </div>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>

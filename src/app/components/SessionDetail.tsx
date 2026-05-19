@@ -53,7 +53,9 @@ function generateId() {
 export function SessionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal } = useApp();
+  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, sessionNotes } = useApp();
+
+  const sessionMediaNotes = sessionNotes.filter((n) => n.parentId === id);
 
   const session = sessions.find((s) => s.id === id);
   const student = session ? students.find((st) => st.id === session.studentId) : null;
@@ -195,7 +197,7 @@ export function SessionDetail() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "Total Drills", value: student.totalSessions, icon: Dumbbell, color: "text-indigo-600", bg: "bg-indigo-50" },
-          { label: "Photos & Videos", value: 0, icon: Image, color: "text-blue-600", bg: "bg-blue-50" },
+          { label: "Photos & Videos", value: sessionMediaNotes.length, icon: Image, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Goals Progress", value: `${avgGoalProgress}%`, icon: Target, color: "text-emerald-600", bg: "bg-emerald-50" },
           { label: "Notes", value: student.notes.length, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
         ].map((stat) => {
@@ -398,10 +400,39 @@ export function SessionDetail() {
       )}
 
       {activeTab === "media" && (
-        <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <Image className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-          <p className="text-gray-500" style={{ fontSize: "15px", fontWeight: 600 }}>Photos & Videos</p>
-          <p className="text-gray-400 mt-1" style={{ fontSize: "13px" }}>Media uploads coming soon</p>
+        <div className="space-y-4">
+          <h3 className="text-gray-900">Photos & Videos</h3>
+          {sessionMediaNotes.length === 0 ? (
+            <div className="text-center py-20 bg-white rounded-2xl border border-gray-100 shadow-sm">
+              <Image className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+              <p className="text-gray-500" style={{ fontSize: "15px", fontWeight: 600 }}>No media yet</p>
+              <p className="text-gray-400 mt-1" style={{ fontSize: "13px" }}>Share a photo or video in Cai chat and link it to this session</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              {sessionMediaNotes.map((note) => {
+                let mediaData: { url?: string; media_type?: string; caption?: string } = {};
+                try { mediaData = JSON.parse(note.content); } catch {}
+                const url = mediaData.url;
+                const isVideo = mediaData.media_type === 'video';
+                const caption = mediaData.caption;
+                if (!url) return null;
+                return (
+                  <div key={note.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                    {isVideo ? (
+                      <video src={url} controls className="w-full aspect-square object-cover" />
+                    ) : (
+                      <img src={url} alt={caption || 'Session media'} className="w-full aspect-square object-cover" />
+                    )}
+                    {caption && (
+                      <p className="px-2 py-1.5 text-gray-500" style={{ fontSize: "11px" }}>{caption}</p>
+                    )}
+                    <p className="px-2 pb-1.5 text-gray-400" style={{ fontSize: "10px" }}>{note.date}</p>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

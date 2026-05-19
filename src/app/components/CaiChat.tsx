@@ -176,11 +176,46 @@ const TOOLS = [
       },
     },
   },
+  {
+    type: "function",
+    function: {
+      name: "attach_media_to_player",
+      description: "Attach an uploaded image or video to a player. Use this when the coach shares media and mentions a player, or wants it linked to a player. The media will appear in the player's Notes section.",
+      parameters: {
+        type: "object",
+        properties: {
+          player_name: { type: "string", description: "Partial or full name of the player" },
+          media_url: { type: "string", description: "The URL of the uploaded media file" },
+          media_type: { type: "string", enum: ["photo", "video"], description: "Type of media" },
+          caption: { type: "string", description: "Optional caption or description" },
+        },
+        required: ["player_name", "media_url", "media_type"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "attach_media_to_session",
+      description: "Attach an uploaded image or video to a session. Use this when the coach shares media and mentions a session or date. The media will appear in the session's Photos & Videos section.",
+      parameters: {
+        type: "object",
+        properties: {
+          player_name: { type: "string", description: "Name of the player the session belongs to (optional)" },
+          session_date: { type: "string", description: "Date of the session in YYYY-MM-DD format (optional)" },
+          media_url: { type: "string", description: "The URL of the uploaded media file" },
+          media_type: { type: "string", enum: ["photo", "video"], description: "Type of media" },
+          caption: { type: "string", description: "Optional caption" },
+        },
+        required: ["media_url", "media_type"],
+      },
+    },
+  },
 ];
 
 export function CaiChat() {
   const { user } = useAuth();
-  const { students, sessions, drills, conversations, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent, addMediaToDrill, saveConversation } = useApp();
+  const { students, sessions, drills, conversations, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent, addMediaToDrill, addMediaToStudent, addMediaToSession, saveConversation } = useApp();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -316,7 +351,12 @@ export function CaiChat() {
 Current date: ${new Date().toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}${pendingMedia ? `
 
 == JUST UPLOADED MEDIA ==
-The coach just uploaded these files. If they want to attach them to a drill, use the attach_media_to_drill tool with these URLs:
+The coach just uploaded these files. Route them based on context:
+- If the coach mentions a player → use attach_media_to_player
+- If the coach mentions a session or date → use attach_media_to_session
+- If the coach mentions a drill → use attach_media_to_drill
+- If no context is clear → ask where to attach it
+URLs:
 ${uploadedUrls.map(u => `- ${u.url} (${u.type})`).join('\n')}` : ''}
 
 == ACTIVE PLAYERS (${activeStudents.length}) ==
@@ -458,6 +498,35 @@ You can both answer questions AND take real actions using the available tools. W
       if (!drill) return { type: "attach_media_to_drill", summary: `❌ Could not find drill matching "${args.drill_name}"` };
       await addMediaToDrill(drill.id, args.media_url, args.media_type, args.caption);
       return { type: "attach_media_to_drill", summary: `✅ Media attached to drill: **${drill.name}**` };
+    }
+
+    if (name === "attach_media_to_player") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.player_name.toLowerCase())
+      );
+      if (!student) return { type: "attach_media_to_player", summary: `❌ Could not find player matching "${args.player_name}"` };
+      await addMediaToStudent(student.id, args.media_url, args.media_type, args.caption);
+      return { type: "attach_media_to_player", summary: `✅ Media added to **${student.name}**'s notes` };
+    }
+
+    if (name === "attach_media_to_session") {
+      let session: typeof sessions[0] | undefined;
+      if (args.player_name) {
+        const student = students.find((s) =>
+          s.name.toLowerCase().includes(args.player_name.toLowerCase())
+        );
+        if (student) {
+          const studentSessions = sessions.filter((s) => s.studentId === student.id);
+          session = args.session_date
+            ? studentSessions.find((s) => s.date === args.session_date)
+            : studentSessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
+        }
+      } else if (args.session_date) {
+        session = sessions.find((s) => s.date === args.session_date);
+      }
+      if (!session) return { type: "attach_media_to_session", summary: `❌ Could not find matching session` };
+      await addMediaToSession(session.id, args.media_url, args.media_type, args.caption);
+      return { type: "attach_media_to_session", summary: `✅ Media added to session on ${session.date}` };
     }
 
     if (name === "add_goal") {

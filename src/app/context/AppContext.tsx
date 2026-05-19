@@ -61,6 +61,9 @@ interface AppContextType {
   updateDrill: (drill: Drill) => Promise<void>;
   deleteDrill: (id: string) => Promise<void>;
   addMediaToDrill: (drillId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
+  addMediaToStudent: (studentId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
+  addMediaToSession: (sessionId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
+  sessionNotes: Note[];
   uploadStudentAvatar: (studentId: string, file: File) => Promise<string>;
   saveConversation: (conv: Conversation) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
@@ -107,6 +110,7 @@ function mapNote(row: any): Note {
     date: row.created_at?.slice(0, 10) ?? "",
     content: row.content,
     sessionId: row.session_id,
+    parentId: row.parent_id,
   };
 }
 
@@ -148,6 +152,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [drills, setDrills] = useState<Drill[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [sessionNotes, setSessionNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ── Load data when user is authenticated ──────────────────────────────────
@@ -164,13 +169,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const coachId = user.id;
 
         // Fetch students, sessions, goals, notes, drills in parallel
-        const [studentsRes, sessionsRes, goalsRes, notesRes, drillsRes, convsRes] = await Promise.all([
+        const [studentsRes, sessionsRes, goalsRes, notesRes, drillsRes, convsRes, sessionNotesRes] = await Promise.all([
           supabase.from("students").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
           supabase.from("sessions").select("*").eq("coach_id", coachId).order("date", { ascending: false }),
           supabase.from("goals").select("*").eq("coach_id", coachId).eq("parent_type", "student"),
           supabase.from("notes").select("*").eq("coach_id", coachId).eq("parent_type", "student").order("created_at", { ascending: false }),
           supabase.from("drills").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
           supabase.from("conversations").select("*").eq("coach_id", coachId).order("updated_at", { ascending: false }),
+          supabase.from("notes").select("*").eq("coach_id", coachId).eq("parent_type", "session").order("created_at", { ascending: false }),
         ]);
 
         const rawStudents = studentsRes.data ?? [];
@@ -181,6 +187,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         // conversations table may not exist yet — degrade gracefully
         const rawConvs = convsRes.error ? [] : (convsRes.data ?? []);
         if (convsRes.error) console.warn("conversations table not ready:", convsRes.error.message);
+        const rawSessionNotes = sessionNotesRes.error ? [] : (sessionNotesRes.data ?? []);
+        setSessionNotes(rawSessionNotes.map(mapNote));
 
         // Map sessions
         const mappedSessions = rawSessions.map(mapSession);
@@ -622,6 +630,48 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return avatarUrl;
   };
 
+  const addMediaToStudent = async (studentId: string, url: string, type: 'photo' | 'video', caption?: string) => {
+    if (!user) return;
+    const content = JSON.stringify({ text: caption || "Media attachment", mediaUrl: url, mediaType: type });
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        id: crypto.randomUUID(),
+        coach_id: user.id,
+        content,
+        parent_type: "student",
+        parent_id: studentId,
+      })
+      .select()
+      .single();
+    if (error) { console.error("addMediaToStudent error:", error); throw error; }
+    const mapped = mapNote(data);
+    setStudents((prev) =>
+      prev.map((s) =>
+        s.id === studentId ? { ...s, notes: [mapped, ...s.notes] } : s
+      )
+    );
+  };
+
+  const addMediaToSession = async (sessionId: string, url: string, type: 'photo' | 'video', caption?: string) => {
+    if (!user) return;
+    const content = JSON.stringify({ type: "media", url, media_type: type, caption: caption || "" });
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        id: crypto.randomUUID(),
+        coach_id: user.id,
+        content,
+        parent_type: "session",
+        parent_id: sessionId,
+      })
+      .select()
+      .single();
+    if (error) { console.error("addMediaToSession error:", error); throw error; }
+    const mapped = mapNote(data);
+    setSessionNotes((prev) => [mapped, ...prev]);
+  };
+
   const addMediaToDrill = async (drillId: string, url: string, type: 'photo' | 'video', caption?: string) => {
     if (!user) return;
     const { error } = await supabase.from("media").insert({
@@ -663,6 +713,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateDrill,
         deleteDrill,
         addMediaToDrill,
+        addMediaToStudent,
+        addMediaToSession,
+        sessionNotes,
         uploadStudentAvatar,
         conversations,
         saveConversation,
