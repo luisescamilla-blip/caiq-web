@@ -84,6 +84,21 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "add_tag",
+      description: "Add a hashtag/tag to a player",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: { type: "string", description: "Name of the player" },
+          tag: { type: "string", description: "Tag to add (no # symbol, e.g. 'beginner' or 'high-priority')" },
+        },
+        required: ["student_name", "tag"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "add_goal",
       description: "Add a goal for a player",
       parameters: {
@@ -361,16 +376,6 @@ You can both answer questions AND take real actions using the available tools. W
     }
 
     if (name === "add_note") {
-
-    if (name === "add_tag") {
-      const student = students.find((s) =>
-        s.name.toLowerCase().includes(args.student_name.toLowerCase())
-      );
-      if (!student) return { type: "add_tag", summary: `❌ Could not find student matching "${args.student_name}"` };
-      const updatedTags = [...new Set([...student.tags, args.tag])];
-      await updateStudent({ ...student, tags: updatedTags });
-      return { type: "add_tag", summary: `✅ Added tag **#${args.tag}** to **${student.name}**` };
-    }
       const student = students.find((s) =>
         s.name.toLowerCase().includes(args.student_name.toLowerCase())
       );
@@ -383,6 +388,16 @@ You can both answer questions AND take real actions using the available tools. W
       };
       await addNote(student.id, note);
       return { type: "add_note", summary: `✅ Note added for **${student.name}**` };
+    }
+
+    if (name === "add_tag") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.student_name.toLowerCase())
+      );
+      if (!student) return { type: "add_tag", summary: `❌ Could not find student matching "${args.student_name}"` };
+      const updatedTags = [...new Set([...student.tags, args.tag])];
+      await updateStudent({ ...student, tags: updatedTags });
+      return { type: "add_tag", summary: `✅ Added tag **#${args.tag}** to **${student.name}**` };
     }
 
     if (name === "update_goal") {
