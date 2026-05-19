@@ -694,28 +694,10 @@ ${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
     setLoading(true);
 
     try {
-      // Use vision model if images are attached, otherwise standard model
-      const hasImages = freshUploadedUrls.some(u => u.type === 'image');
-      const modelToUse = hasImages ? GROQ_VISION_MODEL : GROQ_MODEL;
-
-      // Build messages — last user message gets image_url parts if vision
+      // Always use standard model for tool calling — vision model doesn't reliably call tools
       const historyMessages = updatedMessages
         .filter((m) => m.id !== "welcome")
-        .map((m, idx, arr) => {
-          if (hasImages && idx === arr.length - 1 && m.role === 'user') {
-            // Vision message: content as array with text + images
-            return {
-              role: m.role,
-              content: [
-                { type: 'text', text: m.content },
-                ...freshUploadedUrls
-                  .filter(u => u.type === 'image')
-                  .map(u => ({ type: 'image_url', image_url: { url: u.url } })),
-              ],
-            };
-          }
-          return { role: m.role, content: m.content };
-        });
+        .map((m) => ({ role: m.role, content: m.content }));
 
       const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
@@ -724,7 +706,7 @@ ${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          model: modelToUse,
+          model: GROQ_MODEL,
           messages: [
             { role: "system", content: buildSystemPromptWithMedia(freshUploadedUrls.map(u => ({ url: u.url, type: u.type }))) },
             ...historyMessages,
