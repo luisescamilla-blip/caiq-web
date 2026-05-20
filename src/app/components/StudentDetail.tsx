@@ -69,6 +69,7 @@ export function StudentDetail() {
     ...(student?.notes ?? []),
     ...sessionNotes.filter((n) => n.parentId && studentSessionIds.has(n.parentId) && (() => { try { return JSON.parse(n.content)?.type !== 'media'; } catch { return true; } })()),
   ];
+  console.log('[StudentDetail] sessionNotes total:', sessionNotes.length, 'studentSessionIds:', [...studentSessionIds], 'allStudentNotes:', allStudentNotes.length);
   const allStudentGoals = [
     ...(student?.goals ?? []),
     ...sessionGoals.filter((g) => g.parentId && studentSessionIds.has(g.parentId)),
