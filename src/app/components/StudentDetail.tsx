@@ -57,7 +57,7 @@ function generateId() {
 export function StudentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, uploadStudentAvatar, sessionGoals } = useApp();
+  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, uploadStudentAvatar, sessionGoals, sessionNotes } = useApp();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -65,6 +65,10 @@ export function StudentDetail() {
   const student = students.find((s) => s.id === id);
   const studentSessions = sessions.filter((s) => s.studentId === id);
   const studentSessionIds = new Set(studentSessions.map((s) => s.id));
+  const allStudentNotes = [
+    ...(student?.notes ?? []),
+    ...sessionNotes.filter((n) => n.parentId && studentSessionIds.has(n.parentId) && (() => { try { return JSON.parse(n.content)?.type !== 'media'; } catch { return true; } })()),
+  ];
   const allStudentGoals = [
     ...(student?.goals ?? []),
     ...sessionGoals.filter((g) => g.parentId && studentSessionIds.has(g.parentId)),
@@ -367,14 +371,14 @@ export function StudentDetail() {
                 <Plus className="w-4 h-4" /> Add Note
               </button>
             </div>
-            {student.notes.length === 0 ? (
+            {allStudentNotes.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="w-8 h-8 text-gray-200 mx-auto mb-2" />
                 <p className="text-gray-400" style={{ fontSize: "13px" }}>No notes yet</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {student.notes.slice(0, 2).map((note) => (
+                {allStudentNotes.slice(0, 2).map((note) => (
                   <div key={note.id} className="p-3 bg-gray-50 rounded-xl">
                     <p className="text-gray-400 mb-1" style={{ fontSize: "11px" }}>{formatDate(note.date)}</p>
                     <p className="text-gray-700 line-clamp-3" style={{ fontSize: "13px", lineHeight: 1.6 }}>{note.content}</p>
@@ -537,14 +541,14 @@ export function StudentDetail() {
               <Plus className="w-4 h-4" /> Add Note
             </button>
           </div>
-          {student.notes.length === 0 ? (
+          {allStudentNotes.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
               <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400" style={{ fontSize: "14px" }}>No notes yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {student.notes.map((note) => {
+              {allStudentNotes.map((note) => {
                 let mediaContent: { text: string; mediaUrl: string; mediaType: 'photo' | 'video' } | null = null;
                 try {
                   const parsed = JSON.parse(note.content);
