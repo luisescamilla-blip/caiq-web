@@ -179,8 +179,23 @@ const TOOLS = [
   {
     type: "function",
     function: {
+      name: "update_player_avatar",
+      description: "Update a player's profile photo / avatar. Use this when the coach says 'change avatar', 'update profile photo', 'set photo', or similar for a player. Do NOT use attach_media_to_player for this.",
+      parameters: {
+        type: "object",
+        properties: {
+          player_name: { type: "string", description: "Partial or full name of the player" },
+          photo_url: { type: "string", description: "The URL of the uploaded photo" },
+        },
+        required: ["player_name", "photo_url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "attach_media_to_player",
-      description: "Attach an uploaded image or video to a player. Use this when the coach shares media and mentions a player, or wants it linked to a player. The media will appear in the player's Notes section.",
+      description: "Attach an uploaded image or video to a player's Notes section. Use this when the coach shares media and wants it linked to a player for reference (NOT for profile/avatar photos — use update_player_avatar for that).",
       parameters: {
         type: "object",
         properties: {
@@ -215,7 +230,7 @@ const TOOLS = [
 
 export function CaiChat() {
   const { user } = useAuth();
-  const { students, sessions, drills, conversations, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent, addMediaToDrill, addMediaToStudent, addMediaToSession, saveConversation } = useApp();
+  const { students, sessions, drills, conversations, addStudent, updateStudent, addSession, updateSession, addNote, addGoal, updateGoal, deleteStudent, addMediaToDrill, addMediaToStudent, addMediaToSession, setStudentAvatarUrl, saveConversation } = useApp();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
 
@@ -371,7 +386,8 @@ You can both answer questions AND take real actions using the available tools. W
 
 == JUST UPLOADED MEDIA ==
 The coach just uploaded these files. Route them based on context:
-- If the coach mentions a player → use attach_media_to_player
+- If the coach says 'avatar', 'profile photo', 'change photo', 'set photo' for a player → use update_player_avatar
+- If the coach mentions a player (general media) → use attach_media_to_player
 - If the coach mentions a session or date → use attach_media_to_session
 - If the coach mentions a drill → use attach_media_to_drill
 - If no context is clear → ask the coach where to attach it
@@ -503,6 +519,15 @@ ${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
       if (!drill) return { type: "attach_media_to_drill", summary: `❌ Could not find drill matching "${args.drill_name}"` };
       await addMediaToDrill(drill.id, args.media_url, args.media_type, args.caption);
       return { type: "attach_media_to_drill", summary: `✅ Media attached to drill: **${drill.name}**` };
+    }
+
+    if (name === "update_player_avatar") {
+      const student = students.find((s) =>
+        s.name.toLowerCase().includes(args.player_name.toLowerCase())
+      );
+      if (!student) return { type: "update_player_avatar", summary: `❌ Could not find player matching "${args.player_name}"` };
+      await setStudentAvatarUrl(student.id, args.photo_url);
+      return { type: "update_player_avatar", summary: `✅ Profile photo updated for **${student.name}**` };
     }
 
     if (name === "attach_media_to_player") {

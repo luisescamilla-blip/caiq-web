@@ -65,6 +65,7 @@ interface AppContextType {
   addMediaToSession: (sessionId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
   sessionNotes: Note[];
   uploadStudentAvatar: (studentId: string, file: File) => Promise<string>;
+  setStudentAvatarUrl: (studentId: string, avatarUrl: string) => Promise<void>;
   saveConversation: (conv: Conversation) => Promise<void>;
   deleteConversation: (id: string) => Promise<void>;
 }
@@ -635,6 +636,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return avatarUrl;
   };
 
+  const setStudentAvatarUrl = async (studentId: string, avatarUrl: string): Promise<void> => {
+    if (!user) throw new Error('Not authenticated');
+    await supabase.from('students').update({ avatar_url: avatarUrl }).eq('id', studentId);
+    setStudents(prev => prev.map(s => s.id === studentId ? { ...s, avatarUrl } : s));
+  };
+
   const addMediaToStudent = async (studentId: string, url: string, type: 'photo' | 'video', caption?: string) => {
     if (!user) return;
     const content = JSON.stringify({ text: caption || "Media attachment", mediaUrl: url, mediaType: type });
@@ -722,6 +729,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addMediaToSession,
         sessionNotes,
         uploadStudentAvatar,
+        setStudentAvatarUrl,
         conversations,
         saveConversation,
         deleteConversation,
