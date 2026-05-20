@@ -390,7 +390,7 @@ export function StudentDetail() {
                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                   .slice(0, 4)
                   .map((session) => (
-                    <div key={session.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors">
+                    <div key={session.id} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => navigate(`/sessions/${session.id}`)}>
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
                         session.status === "completed" ? "bg-emerald-400" :
                         session.status === "upcoming" ? "bg-blue-400" : "bg-gray-300"
@@ -426,7 +426,7 @@ export function StudentDetail() {
               {studentSessions
                 .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                 .map((session) => (
-                  <div key={session.id} className="px-5 py-4 hover:bg-gray-50 transition-colors">
+                  <div key={session.id} className="px-5 py-4 hover:bg-gray-50 transition-colors cursor-pointer" onClick={() => navigate(`/sessions/${session.id}`)}>
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-start gap-3">
                         <span className={`inline-flex px-2.5 py-1 rounded-lg mt-0.5 ${
