@@ -69,7 +69,6 @@ export function StudentDetail() {
     ...(student?.notes ?? []),
     ...sessionNotes.filter((n) => n.parentId && studentSessionIds.has(n.parentId) && (() => { try { return JSON.parse(n.content)?.type !== 'media'; } catch { return true; } })()),
   ];
-  console.log('[StudentDetail] sessionNotes total:', sessionNotes.length, 'studentSessionIds:', [...studentSessionIds], 'allStudentNotes:', allStudentNotes.length);
   const allStudentGoals = [
     ...(student?.goals ?? []),
     ...sessionGoals.filter((g) => g.parentId && studentSessionIds.has(g.parentId)),
@@ -160,7 +159,7 @@ export function StudentDetail() {
     { key: "overview", label: "Overview" },
     { key: "sessions", label: `Sessions (${studentSessions.length})` },
     { key: "goals", label: `Goals (${allStudentGoals.length})` },
-    { key: "notes", label: `Notes (${student.notes.length})` },
+    { key: "notes", label: `Notes (${allStudentNotes.length})` },
   ] as const;
 
   return (
@@ -278,7 +277,7 @@ export function StudentDetail() {
           { label: "Total Sessions", value: student.totalSessions, icon: CalendarDays, color: "text-indigo-600", bg: "bg-indigo-50" },
           { label: "Upcoming", value: upcomingSessions.length, icon: Clock, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Goals Progress", value: `${avgGoalProgress}%`, icon: Target, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Notes", value: student.notes.length, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
+          { label: "Notes", value: allStudentNotes.length, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
         ].map((stat) => {
           const Icon = stat.icon;
           return (
