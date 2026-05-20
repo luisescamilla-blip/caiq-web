@@ -57,13 +57,18 @@ function generateId() {
 export function StudentDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, uploadStudentAvatar } = useApp();
+  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, uploadStudentAvatar, sessionGoals } = useApp();
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   const student = students.find((s) => s.id === id);
   const studentSessions = sessions.filter((s) => s.studentId === id);
+  const studentSessionIds = new Set(studentSessions.map((s) => s.id));
+  const allStudentGoals = [
+    ...(student?.goals ?? []),
+    ...sessionGoals.filter((g) => g.parentId && studentSessionIds.has(g.parentId)),
+  ];
 
   const [activeTab, setActiveTab] = useState<"overview" | "sessions" | "goals" | "notes">("overview");
 
@@ -89,8 +94,8 @@ export function StudentDetail() {
   const avatarColor = AVATAR_COLORS[student.id.charCodeAt(student.id.length - 1) % AVATAR_COLORS.length];
   const upcomingSessions = studentSessions.filter((s) => s.status === "upcoming");
   const completedSessions = studentSessions.filter((s) => s.status === "completed");
-  const avgGoalProgress = student.goals.length > 0
-    ? Math.round(student.goals.reduce((acc, g) => acc + g.progress, 0) / student.goals.length)
+  const avgGoalProgress = allStudentGoals.length > 0
+    ? Math.round(allStudentGoals.reduce((acc, g) => acc + g.progress, 0) / allStudentGoals.length)
     : 0;
 
   const formatDate = (dateStr: string) =>
@@ -149,7 +154,7 @@ export function StudentDetail() {
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "sessions", label: `Sessions (${studentSessions.length})` },
-    { key: "goals", label: `Goals (${student.goals.length})` },
+    { key: "goals", label: `Goals (${allStudentGoals.length})` },
     { key: "notes", label: `Notes (${student.notes.length})` },
   ] as const;
 
@@ -329,7 +334,7 @@ export function StudentDetail() {
               </div>
             </div>
             <div className="space-y-3">
-              {student.goals.slice(0, 3).map((goal) => (
+              {allStudentGoals.slice(0, 3).map((goal) => (
                 <div key={goal.id} className="flex items-center gap-3">
                   {goal.status === "completed" ? (
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -464,14 +469,14 @@ export function StudentDetail() {
               <Plus className="w-4 h-4" /> Add Goal
             </button>
           </div>
-          {student.goals.length === 0 ? (
+          {allStudentGoals.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
               <Target className="w-10 h-10 text-gray-200 mx-auto mb-3" />
               <p className="text-gray-400" style={{ fontSize: "14px" }}>No goals set yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {student.goals.map((goal) => (
+              {allStudentGoals.map((goal) => (
                 <div key={goal.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
