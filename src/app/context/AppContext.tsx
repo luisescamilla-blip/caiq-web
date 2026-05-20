@@ -52,6 +52,7 @@ interface AppContextType {
   updateSession: (session: Session) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
   addNote: (studentId: string, note: Note) => Promise<void>;
+  addSessionNote: (sessionId: string, note: Note) => Promise<void>;
   updateNote: (studentId: string, note: Note) => Promise<void>;
   deleteNote: (studentId: string, noteId: string) => Promise<void>;
   updateGoal: (studentId: string, goal: Goal) => Promise<void>;
@@ -424,6 +425,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const addSessionNote = async (sessionId: string, note: Note) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("notes")
+      .insert({
+        id: note.id,
+        coach_id: user.id,
+        content: note.content,
+        parent_type: "session",
+        parent_id: sessionId,
+      })
+      .select()
+      .single();
+    if (error) { console.error("addSessionNote error:", error); throw error; }
+    const mapped = mapNote(data);
+    setSessionNotes((prev) => [mapped, ...prev]);
+  };
+
   const updateNote = async (studentId: string, note: Note) => {
     if (!user) return;
     const { error } = await supabase
@@ -717,6 +736,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateSession,
         deleteSession,
         addNote,
+        addSessionNote,
         updateNote,
         deleteNote,
         addGoal,

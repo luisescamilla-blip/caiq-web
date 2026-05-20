@@ -53,9 +53,10 @@ function generateId() {
 export function SessionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students, sessions, addNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, sessionNotes } = useApp();
+  const { students, sessions, addNote, addSessionNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, sessionNotes } = useApp();
 
-  const sessionMediaNotes = sessionNotes.filter((n) => n.parentId === id);
+  const sessionMediaNotes = sessionNotes.filter((n) => n.parentId === id && (() => { try { return JSON.parse(n.content)?.type === 'media'; } catch { return false; } })());
+  const sessionTextNotes = sessionNotes.filter((n) => n.parentId === id && (() => { try { const p = JSON.parse(n.content); return p?.type !== 'media'; } catch { return true; } })());
 
   const session = sessions.find((s) => s.id === id);
   const student = session ? students.find((st) => st.id === session.studentId) : null;
@@ -102,7 +103,7 @@ export function SessionDetail() {
     if (editingNote) {
       updateNote(student.id, { ...editingNote, content: noteContent });
     } else {
-      addNote(student.id, {
+      addSessionNote(session.id, {
         id: generateId(),
         date: new Date().toISOString().split("T")[0],
         content: noteContent,
@@ -138,7 +139,7 @@ export function SessionDetail() {
     { key: "overview", label: "Overview" },
     { key: "drills", label: `Drills (0)` },
     { key: "goals", label: `Goals (${student.goals.length})` },
-    { key: "notes", label: `Notes (${student.notes.length})` },
+    { key: "notes", label: `Notes (${sessionTextNotes.length})` },
     { key: "media", label: "Photos & Videos" },
     { key: "chats", label: "Chats" },
   ] as const;
@@ -199,7 +200,7 @@ export function SessionDetail() {
           { label: "Total Drills", value: student.totalSessions, icon: Dumbbell, color: "text-indigo-600", bg: "bg-indigo-50" },
           { label: "Photos & Videos", value: sessionMediaNotes.length, icon: Image, color: "text-blue-600", bg: "bg-blue-50" },
           { label: "Goals Progress", value: `${avgGoalProgress}%`, icon: Target, color: "text-emerald-600", bg: "bg-emerald-50" },
-          { label: "Notes", value: student.notes.length, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
+          { label: "Notes", value: sessionTextNotes.length, icon: FileText, color: "text-purple-600", bg: "bg-purple-50" },
         ].map((stat) => {
           const Icon = stat.icon;
           return (
@@ -292,14 +293,14 @@ export function SessionDetail() {
                 <Plus className="w-3.5 h-3.5" /> Add Note
               </button>
             </div>
-            {student.notes.length === 0 ? (
+            {sessionTextNotes.length === 0 ? (
               <div className="text-center py-8">
                 <FileText className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-gray-400" style={{ fontSize: "13px" }}>No notes yet</p>
+                <p className="text-gray-400" style={{ fontSize: "13px" }}>No notes for this session yet</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {student.notes.slice(0, 2).map((note) => (
+                {sessionTextNotes.slice(0, 2).map((note) => (
                   <div key={note.id} className="p-3 bg-gray-50 rounded-xl">
                     <p className="text-gray-400 mb-1" style={{ fontSize: "11px" }}>{formatDate(note.date)}</p>
                     <p className="text-gray-700 line-clamp-3" style={{ fontSize: "13px", lineHeight: 1.6 }}>{note.content}</p>
@@ -518,14 +519,14 @@ export function SessionDetail() {
               <Plus className="w-4 h-4" /> Add Note
             </button>
           </div>
-          {student.notes.length === 0 ? (
+          {sessionTextNotes.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
               <FileText className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-400" style={{ fontSize: "14px" }}>No notes yet</p>
+              <p className="text-gray-400" style={{ fontSize: "14px" }}>No notes for this session yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {student.notes.map((note) => (
+              {sessionTextNotes.map((note) => (
                 <div key={note.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
