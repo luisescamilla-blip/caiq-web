@@ -57,6 +57,7 @@ interface AppContextType {
   deleteNote: (studentId: string, noteId: string) => Promise<void>;
   updateGoal: (studentId: string, goal: Goal) => Promise<void>;
   addGoal: (studentId: string, goal: Goal) => Promise<void>;
+  addSessionGoal: (sessionId: string, goal: Goal) => Promise<void>;
   deleteGoal: (studentId: string, goalId: string) => Promise<void>;
   addDrill: (drill: Drill) => Promise<void>;
   updateDrill: (drill: Drill) => Promise<void>;
@@ -65,6 +66,7 @@ interface AppContextType {
   addMediaToStudent: (studentId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
   addMediaToSession: (sessionId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
   sessionNotes: Note[];
+  sessionGoals: Goal[];
   uploadStudentAvatar: (studentId: string, file: File) => Promise<string>;
   setStudentAvatarUrl: (studentId: string, avatarUrl: string) => Promise<void>;
   saveConversation: (conv: Conversation) => Promise<void>;
@@ -155,6 +157,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [drills, setDrills] = useState<Drill[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [sessionNotes, setSessionNotes] = useState<Note[]>([]);
+  const [sessionGoals, setSessionGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(false);
 
   // ── Load data when user is authenticated ──────────────────────────────────
@@ -171,7 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const coachId = user.id;
 
         // Fetch students, sessions, goals, notes, drills in parallel
-        const [studentsRes, sessionsRes, goalsRes, notesRes, drillsRes, convsRes, sessionNotesRes] = await Promise.all([
+        const [studentsRes, sessionsRes, goalsRes, notesRes, drillsRes, convsRes, sessionNotesRes, sessionGoalsRes] = await Promise.all([
           supabase.from("students").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
           supabase.from("sessions").select("*").eq("coach_id", coachId).order("date", { ascending: false }),
           supabase.from("goals").select("*").eq("coach_id", coachId).eq("parent_type", "student"),
@@ -179,6 +182,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           supabase.from("drills").select("*").eq("coach_id", coachId).order("created_at", { ascending: false }),
           supabase.from("conversations").select("*").eq("coach_id", coachId).order("updated_at", { ascending: false }),
           supabase.from("notes").select("*").eq("coach_id", coachId).eq("parent_type", "session").order("created_at", { ascending: false }),
+          supabase.from("goals").select("*").eq("coach_id", coachId).eq("parent_type", "session"),
         ]);
 
         const rawStudents = studentsRes.data ?? [];
@@ -191,6 +195,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (convsRes.error) console.warn("conversations table not ready:", convsRes.error.message);
         const rawSessionNotes = sessionNotesRes.error ? [] : (sessionNotesRes.data ?? []);
         setSessionNotes(rawSessionNotes.map(mapNote));
+        const rawSessionGoals = sessionGoalsRes?.error ? [] : (sessionGoalsRes?.data ?? []);
+        setSessionGoals(rawSessionGoals.map(mapGoal));
 
         // Map sessions
         const mappedSessions = rawSessions.map(mapSession);
@@ -484,6 +490,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // ── Goals ─────────────────────────────────────────────────────────────────
 
+  const addSessionGoal = async (sessionId: string, goal: Goal) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("goals")
+      .insert({
+        id: goal.id,
+        coach_id: user.id,
+        title: goal.title,
+        status: goal.status,
+        progress: goal.progress,
+        due_date: goal.dueDate || null,
+        parent_type: "session",
+        parent_id: sessionId,
+      })
+      .select()
+      .single();
+    if (error) { console.error("addSessionGoal error:", error); throw error; }
+    const mapped = mapGoal(data);
+    setSessionGoals((prev) => [...prev, mapped]);
+  };
+
   const addGoal = async (studentId: string, goal: Goal) => {
     if (!user) return;
     const { data, error } = await supabase
@@ -740,6 +767,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         updateNote,
         deleteNote,
         addGoal,
+        addSessionGoal,
         updateGoal,
         deleteGoal,
         addDrill,
@@ -749,6 +777,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addMediaToStudent,
         addMediaToSession,
         sessionNotes,
+        sessionGoals,
         uploadStudentAvatar,
         setStudentAvatarUrl,
         conversations,

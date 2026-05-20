@@ -53,7 +53,9 @@ function generateId() {
 export function SessionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students, sessions, addNote, addSessionNote, updateNote, deleteNote, addGoal, updateGoal, deleteGoal, sessionNotes } = useApp();
+  const { students, sessions, addNote, addSessionNote, updateNote, deleteNote, addGoal, addSessionGoal, updateGoal, deleteGoal, sessionNotes, sessionGoals } = useApp();
+
+  const thisSessionGoals = sessionGoals.filter((g) => g.parentId === id);
 
   const sessionMediaNotes = sessionNotes.filter((n) => n.parentId === id && (() => { try { return JSON.parse(n.content)?.type === 'media'; } catch { return false; } })());
   const sessionTextNotes = sessionNotes.filter((n) => n.parentId === id && (() => { try { const p = JSON.parse(n.content); return p?.type !== 'media'; } catch { return true; } })());
@@ -85,8 +87,8 @@ export function SessionDetail() {
   const studentSessions = sessions.filter((s) => s.studentId === student.id);
   const avatarColor = AVATAR_COLORS[student.id.charCodeAt(student.id.length - 1) % AVATAR_COLORS.length];
   const upcomingSessions = studentSessions.filter((s) => s.status === "upcoming");
-  const avgGoalProgress = student.goals.length > 0
-    ? Math.round(student.goals.reduce((acc, g) => acc + g.progress, 0) / student.goals.length)
+  const avgGoalProgress = thisSessionGoals.length > 0
+    ? Math.round(thisSessionGoals.reduce((acc, g) => acc + g.progress, 0) / thisSessionGoals.length)
     : 0;
 
   const formatDate = (dateStr: string) =>
@@ -130,7 +132,7 @@ export function SessionDetail() {
     if (editingGoal) {
       updateGoal(student.id, { ...editingGoal, ...goalForm });
     } else {
-      addGoal(student.id, { id: generateId(), ...goalForm });
+      addSessionGoal(session.id, { id: generateId(), ...goalForm });
     }
     setGoalModalOpen(false);
   };
@@ -138,7 +140,7 @@ export function SessionDetail() {
   const tabs = [
     { key: "overview", label: "Overview" },
     { key: "drills", label: `Drills (0)` },
-    { key: "goals", label: `Goals (${student.goals.length})` },
+    { key: "goals", label: `Goals (${thisSessionGoals.length})` },
     { key: "notes", label: `Notes (${sessionTextNotes.length})` },
     { key: "media", label: "Photos & Videos" },
     { key: "chats", label: "Chats" },
@@ -259,8 +261,9 @@ export function SessionDetail() {
                 />
               </div>
             </div>
+            {thisSessionGoals.length === 0 && <p className="text-gray-400 text-center py-2" style={{ fontSize: "13px" }}>No goals for this session yet</p>}
             <div className="space-y-3">
-              {student.goals.slice(0, 3).map((goal) => (
+              {thisSessionGoals.slice(0, 3).map((goal) => (
                 <div key={goal.id} className="flex items-center gap-3">
                   {goal.status === "completed" ? (
                     <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />
@@ -457,14 +460,14 @@ export function SessionDetail() {
               <Plus className="w-4 h-4" /> Add Goal
             </button>
           </div>
-          {student.goals.length === 0 ? (
+          {thisSessionGoals.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
               <Target className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-              <p className="text-gray-400" style={{ fontSize: "14px" }}>No goals set yet</p>
+              <p className="text-gray-400" style={{ fontSize: "14px" }}>No goals for this session yet</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {student.goals.map((goal) => (
+              {thisSessionGoals.map((goal) => (
                 <div key={goal.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
