@@ -325,39 +325,7 @@ export function SessionDetail() {
             )}
           </div>
 
-          {/* Session history */}
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 lg:col-span-2">
-            <h3 className="text-gray-900 mb-4">Session History</h3>
-            {studentSessions.length === 0 ? (
-              <p className="text-gray-400 text-center py-6" style={{ fontSize: "13px" }}>No sessions yet</p>
-            ) : (
-              <div className="space-y-2">
-                {studentSessions
-                  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                  .slice(0, 4)
-                  .map((s) => (
-                    <div
-                      key={s.id}
-                      className={`flex items-center gap-4 p-3 rounded-xl transition-colors cursor-pointer ${s.id === session.id ? "bg-indigo-50 border border-indigo-100" : "hover:bg-gray-50"}`}
-                      onClick={() => navigate(`/sessions/${s.id}`)}
-                    >
-                      <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        s.status === "completed" ? "bg-emerald-400" :
-                        s.status === "upcoming" ? "bg-blue-400" : "bg-gray-300"
-                      }`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-gray-700" style={{ fontSize: "13px", fontWeight: s.id === session.id ? 700 : 600 }}>{s.topic}</p>
-                        {s.notes && <p className="text-gray-400 truncate" style={{ fontSize: "12px" }}>{s.notes}</p>}
-                      </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-gray-600" style={{ fontSize: "12px" }}>{formatDate(s.date)}</p>
-                        <p className="text-gray-400" style={{ fontSize: "11px" }}>{s.time} · {s.duration}m</p>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            )}
-          </div>
+
         </div>
       )}
 
