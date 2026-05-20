@@ -127,14 +127,26 @@ export function SessionDetail() {
     }
     setGoalModalOpen(true);
   };
-  const saveGoal = () => {
+  const calcGoalStatus = (progress: number): GoalStatus => {
+    if (progress === 0) return "not-started";
+    if (progress >= 100) return "completed";
+    return "in-progress";
+  };
+
+  const saveGoal = async () => {
     if (!goalForm.title.trim()) return;
-    if (editingGoal) {
-      updateGoal(student.id, { ...editingGoal, ...goalForm });
-    } else {
-      addSessionGoal(session.id, { id: generateId(), ...goalForm });
+    const status = calcGoalStatus(goalForm.progress);
+    try {
+      if (editingGoal) {
+        await updateGoal(student.id, { ...editingGoal, ...goalForm, status });
+      } else {
+        await addSessionGoal(session.id, { id: generateId(), ...goalForm, status });
+      }
+      setGoalModalOpen(false);
+    } catch (err) {
+      console.error('saveGoal error:', err);
+      alert('Failed to save goal. Please try again.');
     }
-    setGoalModalOpen(false);
   };
 
   const tabs = [
