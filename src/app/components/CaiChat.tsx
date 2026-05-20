@@ -719,15 +719,18 @@ ${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
     setLoading(true);
 
     try {
-      // Client-side intercept: avatar/profile photo intent + media uploaded → force update_player_avatar
+      // Client-side intercept: avatar/profile photo intent + image uploaded → force update_player_avatar
       if (freshUploadedUrls.length > 0 && freshUploadedUrls[0].type === 'image') {
-        const avatarKeywords = /avatar|profile photo|profile pic|change photo|update photo|set photo|change.*pic|pic.*change/i;
-        if (avatarKeywords.test(content)) {
-          // Find player name from message
-          const mentionedStudent = students.find((s) =>
-            content.toLowerCase().includes(s.name.split(' ')[0].toLowerCase()) ||
-            content.toLowerCase().includes(s.name.toLowerCase())
-          );
+        const lowerContent = content.toLowerCase();
+        const avatarKeywords = /avatar|profile|photo|pic\b|picture|headshot|change.*image|update.*image|set.*image/i;
+        if (avatarKeywords.test(lowerContent)) {
+          console.log('[avatar-intercept] triggered, content:', lowerContent);
+          // Find mentioned student — first name OR full name match
+          const mentionedStudent = students.find((s) => {
+            const nameParts = s.name.toLowerCase().split(' ');
+            return nameParts.some((part) => part.length > 2 && lowerContent.includes(part));
+          });
+          console.log('[avatar-intercept] matched student:', mentionedStudent?.name ?? 'none');
           if (mentionedStudent) {
             const result = await executeTool('update_player_avatar', {
               player_name: mentionedStudent.name,

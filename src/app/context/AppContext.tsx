@@ -638,7 +638,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const setStudentAvatarUrl = async (studentId: string, avatarUrl: string): Promise<void> => {
     if (!user) throw new Error('Not authenticated');
-    await supabase.from('students').update({ avatar_url: avatarUrl }).eq('id', studentId);
+    const { error } = await supabase.from('students').update({ avatar_url: avatarUrl }).eq('id', studentId).eq('coach_id', user.id);
+    if (error) { console.error('setStudentAvatarUrl error:', error); throw error; }
     setStudents(prev => prev.map(s => s.id === studentId ? { ...s, avatarUrl } : s));
   };
 
