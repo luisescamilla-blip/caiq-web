@@ -104,6 +104,7 @@ function mapGoal(row: any): Goal {
     status: row.status,
     progress: row.progress ?? 0,
     dueDate: row.due_date ?? "",
+    parentId: row.parent_id,
   };
 }
 
