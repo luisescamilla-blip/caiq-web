@@ -385,12 +385,12 @@ You can both answer questions AND take real actions using the available tools. W
     return base + `
 
 == JUST UPLOADED MEDIA ==
-The coach just uploaded these files. Route them based on context:
-- If the coach says 'avatar', 'profile photo', 'change photo', 'set photo' for a player → use update_player_avatar
-- If the coach mentions a player (general media) → use attach_media_to_player
-- If the coach mentions a session or date → use attach_media_to_session
-- If the coach mentions a drill → use attach_media_to_drill
-- If no context is clear → ask the coach where to attach it
+The coach just uploaded these files. You MUST call a tool to route them. Rules (in priority order):
+1. If the message contains words like 'avatar', 'profile photo', 'profile pic', 'change photo', 'update photo', 'set photo' → call update_player_avatar. Do NOT call attach_media_to_player.
+2. If the coach mentions a session or date → call attach_media_to_session
+3. If the coach mentions a drill → call attach_media_to_drill
+4. If the coach mentions a player (no avatar intent) → call attach_media_to_player
+5. If no context → ask where to attach it
 URLs:
 ${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
   };
@@ -719,6 +719,35 @@ ${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
     setLoading(true);
 
     try {
+      // Client-side intercept: avatar/profile photo intent + media uploaded → force update_player_avatar
+      if (freshUploadedUrls.length > 0 && freshUploadedUrls[0].type === 'image') {
+        const avatarKeywords = /avatar|profile photo|profile pic|change photo|update photo|set photo|change.*pic|pic.*change/i;
+        if (avatarKeywords.test(content)) {
+          // Find player name from message
+          const mentionedStudent = students.find((s) =>
+            content.toLowerCase().includes(s.name.split(' ')[0].toLowerCase()) ||
+            content.toLowerCase().includes(s.name.toLowerCase())
+          );
+          if (mentionedStudent) {
+            const result = await executeTool('update_player_avatar', {
+              player_name: mentionedStudent.name,
+              photo_url: freshUploadedUrls[0].url,
+            });
+            const aiMsg: Message = {
+              id: `a-${Date.now()}`,
+              role: 'assistant',
+              content: result.summary,
+              timestamp: new Date().toISOString(),
+            };
+            const finalMessages = [...updatedMessages, aiMsg];
+            setMessages(finalMessages);
+            scheduleSave(finalMessages);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       // Always use standard model for tool calling — vision model doesn't reliably call tools
       const historyMessages = updatedMessages
         .filter((m) => m.id !== "welcome")
