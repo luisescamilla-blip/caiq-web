@@ -281,7 +281,6 @@ export function SessionDetail() {
                 <p className="text-gray-400" style={{ fontSize: "14px" }}>No Goals Yet</p>
               </div>
             )}
-}
             <div className="space-y-3">
               {thisSessionGoals.slice(0, 3).map((goal) => (
                 <div key={goal.id} className="flex items-center gap-3">
