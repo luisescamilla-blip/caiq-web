@@ -522,6 +522,41 @@ ${freshMedia.map(u => `- ${u.url} (${u.type})`).join('\n')}`;
       return { type: "cancel_session", summary: `✅ Cancelled session for **${student.name}**: ${target.topic} on ${target.date}` };
     }
 
+    if (name === "get_session_details") {
+      let relevantSessions: Session[] = sessions;
+      let studentName = "All players";
+
+      if (args.student_name) {
+        const student = students.find((s) =>
+          s.name.toLowerCase().includes(args.student_name.toLowerCase())
+        );
+        if (!student) return { type: "get_session_details", summary: `❌ Could not find student matching "${args.student_name}"` };
+        relevantSessions = relevantSessions.filter((s) => s.studentId === student.id);
+        studentName = student.name;
+      }
+
+      if (args.session_identifier) {
+        const identifierLower = args.session_identifier.toLowerCase();
+        relevantSessions = relevantSessions.filter((s) =>
+          s.topic.toLowerCase().includes(identifierLower) || s.date.includes(identifierLower)
+        );
+      }
+
+      // Sort by date (most recent first) to prioritize if identifier is vague or missing
+      relevantSessions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+      if (relevantSessions.length === 0) {
+        return { type: "get_session_details", summary: `❌ No session found for ${studentName} matching "${args.session_identifier || "most recent"}"` };
+      }
+
+      const sessionsSummary = relevantSessions.map((s) => {
+        const student = students.find((st) => st.id === s.studentId);
+        return `**${s.topic}** with ${student?.name ?? "Unknown"} on ${s.date} at ${s.time} for ${s.duration} minutes. Status: ${s.status}. Notes: ${s.notes || "None."}`;
+      }).join("\n");
+
+      return { type: "get_session_details", summary: `Found ${relevantSessions.length} session(s) for ${studentName}:\n${sessionsSummary}` };
+    }
+
     if (name === "delete_student") {
       const student = students.find((s) =>
         s.name.toLowerCase().includes(args.student_name.toLowerCase())
