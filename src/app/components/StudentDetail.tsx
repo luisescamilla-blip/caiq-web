@@ -325,18 +325,24 @@ export function StudentDetail() {
               </button>
             </div>
             {/* Overall progress */}
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-1">
-                <p className="text-gray-500" style={{ fontSize: "13px" }}>Overall Progress</p>
-                <p className="text-gray-900" style={{ fontSize: "13px", fontWeight: 700 }}>{avgGoalProgress}%</p>
+            {allStudentGoals.length > 0 ? (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-gray-500" style={{ fontSize: "13px" }}>Overall Progress</p>
+                  <p className="text-gray-900" style={{ fontSize: "13px", fontWeight: 700 }}>{avgGoalProgress}%</p>
+                </div>
+                <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+                    style={{ width: `${avgGoalProgress}%` }}
+                  />
+                </div>
               </div>
-              <div className="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
-                  style={{ width: `${avgGoalProgress}%` }}
-                />
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-gray-400" style={{ fontSize: "13px" }}>No Goals Yet</p>
               </div>
-            </div>
+            )}
             <div className="space-y-3">
               {allStudentGoals.slice(0, 3).map((goal) => (
                 <div key={goal.id} className="flex items-center gap-3">
