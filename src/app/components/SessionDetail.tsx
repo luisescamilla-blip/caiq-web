@@ -123,7 +123,7 @@ export function SessionDetail() {
       setGoalForm({ title: goal.title, status: goal.status, progress: goal.progress, dueDate: goal.dueDate });
     } else {
       setEditingGoal(null);
-      setGoalForm({ title: "", status: "not-started", progress: 0, dueDate: "" });
+      setGoalForm({ title: "", status: "not-started" as GoalStatus, progress: 0, dueDate: "" });
     }
     setGoalModalOpen(true);
   };
@@ -252,7 +252,7 @@ export function SessionDetail() {
       {/* Tab content */}
       {activeTab === "overview" && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          {/* Goals summary */}
+          {/* Goals summary */} 
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-gray-900">Goals Overview</h3>
