@@ -130,12 +130,10 @@ const TOOLS = [
       },
     },
   },
-  },
   {
     type: "function",
     function: {
-      name: "cancel_session",
-      description: "Cancel an upcoming session for a player",
+      name: "cancel_session",      description: "Cancel an upcoming session for a player",
       parameters: {
         type: "object",
         properties: {
