@@ -130,7 +130,6 @@ const TOOLS = [
       },
     },
   },
-  {
     type: "function",
     function: {
       name: "cancel_session",
@@ -142,6 +141,26 @@ const TOOLS = [
           date: { type: "string", description: "Date of the session to cancel in YYYY-MM-DD format (optional, cancels next upcoming if omitted)" },
         },
         required: ["student_name"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "get_session_details",
+      description: "Retrieve and display detailed information about a specific session or sessions. Use this when the coach asks to 'show', 'display', 'tell me about' or 'get info on' sessions.",
+      parameters: {
+        type: "object",
+        properties: {
+          student_name: {
+            type: "string",
+            description: "Name of the player associated with the session (optional). Use this to narrow down the search.",
+          },
+          session_identifier: {
+            type: "string",
+            description: "A keyword, topic, or date (YYYY-MM-DD) to identify the session(s). Can be partial match. If not provided, assume the most recent session.",
+          },
+        },
       },
     },
   },
