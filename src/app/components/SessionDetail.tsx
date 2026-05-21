@@ -400,13 +400,44 @@ export function SessionDetail() {
                 const url = mediaData.url;
                 const isVideo = mediaData.media_type === 'video';
                 const caption = mediaData.caption;
-                if (!url) return null;
+                // Skip missing or placeholder URLs
+                if (!url || url.includes('example.com')) return null;
                 return (
                   <div key={note.id} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
                     {isVideo ? (
-                      <video src={url} controls className="w-full aspect-square object-cover" />
+                      <div className="relative w-full aspect-square bg-black flex items-center justify-center group cursor-pointer"
+                        onClick={() => window.open(url, '_blank')}>
+                        <video
+                          src={url}
+                          preload="metadata"
+                          className="w-full h-full object-cover opacity-70"
+                          muted
+                          playsInline
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-12 h-12 rounded-full bg-white/80 flex items-center justify-center shadow-md group-hover:bg-white transition">
+                            <svg className="w-5 h-5 text-gray-800 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
                     ) : (
-                      <img src={url} alt={caption || 'Session media'} className="w-full aspect-square object-cover" />
+                      <img
+                        src={url}
+                        alt={caption || 'Session media'}
+                        className="w-full aspect-square object-cover"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = 'none';
+                          const parent = (e.target as HTMLImageElement).parentElement;
+                          if (parent) {
+                            const placeholder = document.createElement('div');
+                            placeholder.className = 'w-full aspect-square bg-gray-100 flex items-center justify-center';
+                            placeholder.innerHTML = '<span style="font-size:11px;color:#9ca3af">Image unavailable</span>';
+                            parent.insertBefore(placeholder, e.target as HTMLImageElement);
+                          }
+                        }}
+                      />
                     )}
                     {caption && (
                       <p className="px-2 py-1.5 text-gray-500" style={{ fontSize: "11px" }}>{caption}</p>
