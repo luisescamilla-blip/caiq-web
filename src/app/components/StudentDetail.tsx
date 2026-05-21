@@ -339,7 +339,7 @@ export function StudentDetail() {
                 </div>
               </div>
             ) : (
-              <div className="text-center py-12 bg-white rounded-2xl border border-gray-100">
+              <div className="text-center py-12 rounded-2xl">
                 <Target className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                 <p className="text-gray-400" style={{ fontSize: "14px" }}>No Goals Yet</p>
               </div>
