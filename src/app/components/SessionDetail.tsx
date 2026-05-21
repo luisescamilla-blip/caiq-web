@@ -209,6 +209,7 @@ export function SessionDetail() {
       </div>
 
       {/* Quick stats */}
+      {/*
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "Total Drills", value: student.totalSessions, icon: Dumbbell, color: "text-indigo-600", bg: "bg-indigo-50" },
@@ -228,6 +229,7 @@ export function SessionDetail() {
           );
         })}
       </div>
+      */}
 
       {/* Tabs */}
       <div className="border-b border-gray-200">
