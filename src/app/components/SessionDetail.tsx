@@ -281,7 +281,7 @@ export function SessionDetail() {
                 <p className="text-gray-400" style={{ fontSize: "14px" }}>No Goals Yet</p>
               </div>
             )}
-            {thisSessionGoals.length === 0 && <p className="text-gray-400 text-center py-2" style={{ fontSize: "13px" }}>No goals for this session yet</p>}}
+}
             <div className="space-y-3">
               {thisSessionGoals.slice(0, 3).map((goal) => (
                 <div key={goal.id} className="flex items-center gap-3">
