@@ -130,6 +130,8 @@ const TOOLS = [
       },
     },
   },
+  },
+  {
     type: "function",
     function: {
       name: "cancel_session",
