@@ -321,7 +321,7 @@ export function SessionDetail() {
                 {sessionTextNotes.slice(0, 2).map((note) => (
                   <div key={note.id} className="p-3 bg-gray-50 rounded-xl">
                     <p className="text-gray-400 mb-1" style={{ fontSize: "11px" }}>{formatDate(note.date)}</p>
-                    <p className="text-gray-700 line-clamp-3" style={{ fontSize: "13px", lineHeight: 1.6 }}>{note.content}</p>
+                    <p className="text-gray-700 line-clamp-3" style={{ fontSize: "13px", lineHeight: 1.7 }}>{note.content}</p>
                   </div>
                 ))}
               </div>
