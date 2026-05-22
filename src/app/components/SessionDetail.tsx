@@ -63,7 +63,7 @@ export function SessionDetail() {
   const session = sessions.find((s) => s.id === id);
   const student = session ? students.find((st) => st.id === session.studentId) : null;
 
-  const [activeTab, setActiveTab] = useState<"overview" | "drills" | "goals" | "notes" | "media" | "chats">("overview");
+  const [activeTab, setActiveTab] = useState<"drills" | "goals" | "notes" | "media">("notes");
 
   // Note modal state
   const [noteModalOpen, setNoteModalOpen] = useState(false);
@@ -150,12 +150,10 @@ export function SessionDetail() {
   };
 
   const tabs = [
-    // { key: "overview", label: "Overview" },
-    { key: "drills", label: `Drills (0)` },
-    { key: "goals", label: `Goals (${thisSessionGoals.length})` },
     { key: "notes", label: `Notes (${sessionTextNotes.length})` },
     { key: "media", label: "Photos & Videos" },
-    // { key: "chats", label: "Chats" },
+    { key: "goals", label: `Goals (${thisSessionGoals.length})` },
+    { key: "drills", label: `Drills (0)` },
   ] as const;
 
   return (
