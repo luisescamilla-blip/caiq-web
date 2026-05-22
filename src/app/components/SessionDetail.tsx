@@ -53,7 +53,7 @@ function generateId() {
 export function SessionDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { students, sessions, addNote, addSessionNote, updateNote, deleteNote, addGoal, addSessionGoal, updateGoal, deleteGoal, sessionNotes, sessionGoals } = useApp();
+  const { students, sessions, addNote, addSessionNote, updateNote, deleteNote, addGoal, addSessionGoal, updateGoal, deleteGoal, sessionNotes, sessionGoals, drills } = useApp();
 
   const thisSessionGoals = sessionGoals.filter((g) => g.parentId === id);
 
@@ -230,18 +230,14 @@ export function SessionDetail() {
       */}
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <div className="flex gap-0 overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+        <div className="flex text-sm font-medium text-center text-gray-500 overflow-x-auto">
           {tabs.map((tab) => (
             <button
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
-              className={`px-4 py-2.5 border-b-2 transition-all whitespace-nowrap ${
-                activeTab === tab.key
-                  ? "border-indigo-600 text-indigo-600"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-              style={{ fontSize: "14px", fontWeight: activeTab === tab.key ? 600 : 500 }}
+              className={`inline-flex items-center justify-center p-4 rounded-t-lg border-b-2 border-transparent hover:text-gray-600 hover:border-gray-300 ${activeTab === tab.key ? "text-indigo-600 border-indigo-600 active dark:text-indigo-500 dark:border-indigo-500" : ""}`} 
+             
             >
               {tab.label}
             </button>
@@ -574,37 +570,6 @@ export function SessionDetail() {
 
       {/* Note Modal */}
       {noteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setNoteModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-gray-900">{editingNote ? "Edit Note" : "Add Note"}</h3>
-              <button onClick={() => setNoteModalOpen(false)} className="p-1.5 text-gray-400 hover:bg-gray-100 rounded-lg">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <textarea
-              value={noteContent}
-              onChange={(e) => setNoteContent(e.target.value)}
-              placeholder="Write your session notes here..."
-              rows={5}
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300 resize-none transition-all"
-              style={{ fontSize: "14px" }}
-            />
-            <div className="flex gap-3 mt-4">
-              <button onClick={() => setNoteModalOpen(false)} className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-600 hover:bg-gray-200 rounded-xl transition-colors" style={{ fontSize: "14px" }}>
-                Cancel
-              </button>
-              <button onClick={saveNote} disabled={!noteContent.trim()} className="flex-1 px-4 py-2.5 bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 rounded-xl transition-colors" style={{ fontSize: "14px" }}>
-                Save Note
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Goal Modal */}
-      {goalModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setGoalModalOpen(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
