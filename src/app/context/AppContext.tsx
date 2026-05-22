@@ -65,6 +65,8 @@ interface AppContextType {
   addMediaToDrill: (drillId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
   addMediaToStudent: (studentId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
   addMediaToSession: (sessionId: string, url: string, type: 'photo' | 'video', caption?: string) => Promise<void>;
+  assignDrillToSession: (sessionId: string, drillId: string) => Promise<void>;
+  removeDrillFromSession: (sessionId: string, drillId: string) => Promise<void>;
   sessionNotes: Note[];
   sessionGoals: Goal[];
   uploadStudentAvatar: (studentId: string, file: File) => Promise<string>;
@@ -146,6 +148,7 @@ function mapSession(row: any): Session {
     status: row.status,
     topic: row.topic,
     notes: row.notes ?? undefined,
+    drillIds: row.drill_ids ?? [], // Added drillIds mapping
   };
 }
 
@@ -320,6 +323,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         duration: session.duration,
         status: session.status,
         notes: session.notes,
+        drill_ids: session.drillIds, // Added drill_ids
       })
       .select()
       .single();
@@ -352,6 +356,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         duration: session.duration,
         status: session.status,
         notes: session.notes,
+        drill_ids: session.drillIds, // Added drill_ids
         updated_at: new Date().toISOString(),
       })
       .eq("id", session.id)
@@ -750,6 +755,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const assignDrillToSession = async (sessionId: string, drillId: string) => {
+    if (!user) return;
+    const sessionToUpdate = sessions.find((s) => s.id === sessionId);
+    if (!sessionToUpdate) return; // Session not found
+
+    const newDrillIds = Array.from(new Set([...(sessionToUpdate.drillIds || []), drillId]));
+
+    const { error } = await supabase.from("sessions").update({ drill_ids: newDrillIds }).eq("id", sessionId).eq("coach_id", user.id);
+    if (error) { console.error("assignDrillToSession error:", error); throw error; }
+
+    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, drillIds: newDrillIds } : s)));
+  };
+
+  const removeDrillFromSession = async (sessionId: string, drillId: string) => {
+    if (!user) return;
+    const sessionToUpdate = sessions.find((s) => s.id === sessionId);
+    if (!sessionToUpdate) return; // Session not found
+
+    const newDrillIds = (sessionToUpdate.drillIds || []).filter((id) => id !== drillId);
+
+    const { error } = await supabase.from("sessions").update({ drill_ids: newDrillIds }).eq("id", sessionId).eq("coach_id", user.id);
+    if (error) { console.error("removeDrillFromSession error:", error); throw error; }
+
+    setSessions((prev) => prev.map((s) => (s.id === sessionId ? { ...s, drillIds: newDrillIds } : s)));
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -777,6 +808,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         addMediaToDrill,
         addMediaToStudent,
         addMediaToSession,
+        assignDrillToSession,
+        removeDrillFromSession,
         sessionNotes,
         sessionGoals,
         uploadStudentAvatar,

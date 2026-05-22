@@ -29,6 +29,7 @@ export interface Session {
   status: SessionStatus;
   topic: string;
   notes?: string;
+  drillIds?: string[];
 }
 
 export interface Student {
