@@ -150,10 +150,10 @@ export function SessionDetail() {
   };
 
   const tabs = [
-    { key: "notes", label: sessionTextNotes.length > 0 ? `Notes (${sessionTextNotes.length})` : "Notes" },
-    { key: "media", label: sessionMediaNotes.length > 0 ? `Photos & Videos (${sessionMediaNotes.length})` : "Photos & Videos" },
-    { key: "goals", label: thisSessionGoals.length > 0 ? `Goals (${thisSessionGoals.length})` : "Goals" },
-    { key: "drills", label: drills.length > 0 ? `Drills (${drills.length})` : "Drills" },
+    { key: "notes", label: sessionTextNotes.length > 1 ? `Notes (${sessionTextNotes.length})` : "Notes" },
+    { key: "media", label: sessionMediaNotes.length > 1 ? `Photos & Videos (${sessionMediaNotes.length})` : "Photos & Videos" },
+    { key: "goals", label: thisSessionGoals.length > 1 ? `Goals (${thisSessionGoals.length})` : "Goals" },
+    { key: "drills", label: drills.length > 1 ? `Drills (${drills.length})` : "Drills" },
   ] as const;
 
   return (
