@@ -224,21 +224,21 @@ export const initialStudents: Student[] = [
 ];
 
 export const initialSessions: Session[] = [
-  { id: "sess1", studentId: "s1", date: "2026-05-02", time: "10:00", duration: 60, status: "upcoming", topic: "Salary Negotiation Strategies" },
-  { id: "sess2", studentId: "s2", date: "2026-04-30", time: "14:00", duration: 60, status: "upcoming", topic: "Delegation & Trust Building" },
-  { id: "sess3", studentId: "s3", date: "2026-05-05", time: "09:00", duration: 45, status: "upcoming", topic: "Work-Life Boundary Setting" },
-  { id: "sess4", studentId: "s4", date: "2026-05-01", time: "11:00", duration: 90, status: "upcoming", topic: "Investor Pitch Deck Review" },
-  { id: "sess5", studentId: "s6", date: "2026-05-07", time: "15:00", duration: 60, status: "upcoming", topic: "Managing Up & Stakeholder Communication" },
-  { id: "sess6", studentId: "s8", date: "2026-05-03", time: "08:00", duration: 45, status: "upcoming", topic: "Mindfulness in the Workplace" },
-  { id: "sess7", studentId: "s1", date: "2026-04-22", time: "10:00", duration: 60, status: "completed", topic: "Interview Preparation", notes: "Practiced STAR method. Strong performance." },
-  { id: "sess8", studentId: "s2", date: "2026-04-15", time: "14:00", duration: 60, status: "completed", topic: "Team Dynamics Assessment", notes: "Identified key blockers. Action plan created." },
-  { id: "sess9", studentId: "s4", date: "2026-04-25", time: "11:00", duration: 90, status: "completed", topic: "MVP Progress Review", notes: "On track. Beta testing underway." },
-  { id: "sess10", studentId: "s3", date: "2026-04-20", time: "09:00", duration: 45, status: "completed", topic: "Morning Routine Review", notes: "Routine established. Shifting focus to work hours." },
-  { id: "sess11", studentId: "s6", date: "2026-04-18", time: "15:00", duration: 60, status: "completed", topic: "Leadership Styles & Assessment", notes: "Completed DISC assessment. Identified strengths." },
-  { id: "sess12", studentId: "s8", date: "2026-04-23", time: "08:00", duration: 45, status: "completed", topic: "Breathing & Stress Techniques", notes: "Introduced box breathing. Journaling homework assigned." },
-  { id: "sess13", studentId: "s1", date: "2026-04-08", time: "10:00", duration: 60, status: "completed", topic: "LinkedIn & Personal Branding", notes: "Profile optimized. 3 target companies identified." },
-  { id: "sess14", studentId: "s7", date: "2025-12-20", time: "14:00", duration: 60, status: "completed", topic: "Program Graduation", notes: "Sarah landed UX role! Celebrated success." },
-  { id: "sess15", studentId: "s5", date: "2026-03-30", time: "10:00", duration: 45, status: "cancelled", topic: "Fitness Plan Review", notes: "Client requested hold due to family commitments." },
+  { id: "sess1", studentId: "s1", date: "2026-05-02", time: "10:00", duration: 60, status: "upcoming", topic: "Salary Negotiation Strategies", drillIds: ["d1"] },,
+  { id: "sess2", studentId: "s2", date: "2026-04-30", time: "14:00", duration: 60, status: "upcoming", topic: "Delegation & Trust Building", drillIds: [] },,
+  { id: "sess3", studentId: "s3", date: "2026-05-05", time: "09:00", duration: 45, status: "upcoming", topic: "Work-Life Boundary Setting", drillIds: [] },,
+  { id: "sess4", studentId: "s4", date: "2026-05-01", time: "11:00", duration: 90, status: "upcoming", topic: "Investor Pitch Deck Review", drillIds: [] },,
+  { id: "sess5", studentId: "s6", date: "2026-05-07", time: "15:00", duration: 60, status: "upcoming", topic: "Managing Up & Stakeholder Communication", drillIds: [] },,
+  { id: "sess6", studentId: "s8", date: "2026-05-03", time: "08:00", duration: 45, status: "upcoming", topic: "Mindfulness in the Workplace", drillIds: [] },,
+  { id: "sess7", studentId: "s1", date: "2026-04-22", time: "10:00", duration: 60, status: "completed", topic: "Interview Preparation", notes: "Practiced STAR method. Strong performance.", drillIds: ["d1"] },,
+  { id: "sess8", studentId: "s2", date: "2026-04-15", time: "14:00", duration: 60, status: "completed", topic: "Team Dynamics Assessment", notes: "Identified key blockers. Action plan created.", drillIds: ["d2", "d3"] },,
+  { id: "sess9", studentId: "s4", date: "2026-04-25", time: "11:00", duration: 90, status: "completed", topic: "MVP Progress Review", notes: "On track. Beta testing underway.", drillIds: [] },,
+  { id: "sess10", studentId: "s3", date: "2026-04-20", time: "09:00", duration: 45, status: "completed", topic: "Morning Routine Review", notes: "Routine established. Shifting focus to work hours.", drillIds: [] },,
+  { id: "sess11", studentId: "s6", date: "2026-04-18", time: "15:00", duration: 60, status: "completed", topic: "Leadership Styles & Assessment", notes: "Completed DISC assessment. Identified strengths.", drillIds: [] },,
+  { id: "sess12", studentId: "s8", date: "2026-04-23", time: "08:00", duration: 45, status: "completed", topic: "Breathing & Stress Techniques", notes: "Introduced box breathing. Journaling homework assigned.", drillIds: [] },,
+  { id: "sess13", studentId: "s1", date: "2026-04-08", time: "10:00", duration: 60, status: "completed", topic: "LinkedIn & Personal Branding", notes: "Profile optimized. 3 target companies identified.", drillIds: [] },,
+  { id: "sess14", studentId: "s7", date: "2025-12-20", time: "14:00", duration: 60, status: "completed", topic: "Program Graduation", notes: "Sarah landed UX role! Celebrated success.", drillIds: [] },,
+  { id: "sess15", studentId: "s5", date: "2026-03-30", time: "10:00", duration: 45, status: "cancelled", topic: "Fitness Plan Review", notes: "Client requested hold due to family commitments.", drillIds: [] },,
 ];
 
 export interface ChatMessage {
