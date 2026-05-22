@@ -150,12 +150,12 @@ export function SessionDetail() {
   };
 
   const tabs = [
-    { key: "overview", label: "Overview" },
+    // { key: "overview", label: "Overview" },
     { key: "drills", label: `Drills (0)` },
     { key: "goals", label: `Goals (${thisSessionGoals.length})` },
     { key: "notes", label: `Notes (${sessionTextNotes.length})` },
     { key: "media", label: "Photos & Videos" },
-    { key: "chats", label: "Chats" },
+    // { key: "chats", label: "Chats" },
   ] as const;
 
   return (
